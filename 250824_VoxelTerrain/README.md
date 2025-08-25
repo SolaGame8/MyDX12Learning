@@ -23,7 +23,7 @@
 
 ### プロジェクト実行に必要なもの
 
-DirectXTex が必要です。
+**DirectXTex が必要です。**
 
 [DirectXTexはこちら](https://github.com/microsoft/DirectXTex)
 
