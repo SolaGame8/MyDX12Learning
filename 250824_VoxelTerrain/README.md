@@ -25,7 +25,7 @@
 
 DirectXTex が必要です。
 
-[DirectXTKはこちら](https://github.com/microsoft/DirectXTex)
+[DirectXTexはこちら](https://github.com/microsoft/DirectXTex)
 
 プロジェクト → プロパティ → C/C++ → 「Additional Include Directories」
 に、DirectXTexフォルダへのパスを書いて、ライブラリをインクルードできる状態にしてください。
