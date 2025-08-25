@@ -30,6 +30,8 @@
 プロジェクト → プロパティ → C/C++ → 「Additional Include Directories」
 に、DirectXTexフォルダへのパスを書いて、ライブラリをインクルードできる状態にしてください。
 
+![project settings](https://github.com/SolaGame8/MyDX12Learning/blob/main/250824_VoxelTerrain/screenshots/vs_prop_1.jpg)
+
 DirectXTexは、テクスチャーの読み込みに使っています。
 
 ### slnファイル
