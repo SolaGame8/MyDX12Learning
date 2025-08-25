@@ -28,7 +28,7 @@
 [DirectXTexはこちら](https://github.com/microsoft/DirectXTex)
 
 プロジェクト → プロパティ → C/C++ → 「Additional Include Directories」
-に、DirectXTexフォルダへのパスを書いて、ライブラリをインクルードできる状態にしてください。
+に、DirectXTexフォルダへのパス（パソコン内の任意の場所に置いたところ）を書くと、ライブラリをインクルードできる状態になります。
 
 ![project settings](https://github.com/SolaGame8/MyDX12Learning/blob/main/250824_VoxelTerrain/screenshots/vs_prop_1.jpg)
 
