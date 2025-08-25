@@ -1,4 +1,4 @@
-#250824_VoxelTerrain
+# 250824_VoxelTerrain
 
 DirectX12 初学者が、学習目的で 無計画 に作ったものです。
 
