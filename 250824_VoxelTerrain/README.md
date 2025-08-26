@@ -38,3 +38,12 @@ DirectXTexは、テクスチャーの読み込みに使っています。
 
 Visual Studio 2022 で作成されています。
 
+
+### 制作の様子は、新規ファイルを作るところからすべて YouTube でライブ配信されています
+
+[１日目のYouTube制作ライブ](https://www.youtube.com/watch?v=LfemIWoI2Ws&t=13220s)
+[２日目のYouTube制作ライブ](https://www.youtube.com/watch?v=Wnkv7VBMFV0&t=2694s)
+
+### このファイルについて、別で解説した動画もあります
+
+ゼロからDirectX12の描画をフルスクラッチしました
