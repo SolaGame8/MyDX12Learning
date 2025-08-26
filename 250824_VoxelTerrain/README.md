@@ -39,7 +39,7 @@ DirectXTexは、テクスチャーの読み込みに使っています。
 Visual Studio 2022 で作成されています。
 
 
-### 制作の様子は、新規ファイルを作るところからすべて YouTube でライブ配信されています
+### [YouTubeライブ] 制作の様子は、新規ファイルを作るところからすべてライブ配信されています
 
 [１日目のYouTube制作ライブ](https://www.youtube.com/watch?v=LfemIWoI2Ws&t=13220s)
 <br>
