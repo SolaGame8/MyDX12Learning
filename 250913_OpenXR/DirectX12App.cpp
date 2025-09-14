@@ -793,6 +793,10 @@ bool DirectX12App::CreatePipelineState(int idx) {
 
     
     psoDesc.DepthStencilState.DepthEnable = TRUE;                           //深度バッファを有効にする
+    //psoDesc.DepthStencilState.DepthEnable = FALSE;                           //深度バッファを有効にする
+    
+    
+    
     psoDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;  //深度の書き込みを有効にする
     psoDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS;       //深度テストの条件（値が小さい方（カメラに近い方）を描画
     psoDesc.DepthStencilState.StencilEnable = FALSE;
@@ -1766,117 +1770,210 @@ void DirectX12App::Render() {
     commandList->Reset(commandAllocator.Get(), nullptr);
 
 
-    {
-        //バリア変更　（「表示して良い」という状態から「描画します」という状態へ
+    int viewNum = 1;
 
-        CD3DX12_RESOURCE_BARRIER transitionBarrier = CD3DX12_RESOURCE_BARRIER::Transition(
-            renderTargets[currentFrameIndex].Get(),
-            D3D12_RESOURCE_STATE_PRESENT,
-            D3D12_RESOURCE_STATE_RENDER_TARGET);
-
-        commandList->ResourceBarrier(1, &transitionBarrier);
+    if (flg_useVRMode) {
+        viewNum = XR_Manager->xr_viewCount;
     }
 
 
-    // Get descriptor handle for the current render target view
-    UINT rtvDescriptorSize = dx12Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-    CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(rtvHeap->GetCPUDescriptorHandleForHeapStart(), currentFrameIndex, rtvDescriptorSize);
+    std::vector<OpenXRManager::EyeMatrix> eyesData;
+    float nearZ = 0.01f; // 近クリップ面
+    float farZ = 100.0f; // 遠クリップ面
 
-    CD3DX12_CPU_DESCRIPTOR_HANDLE dsvHandle(dsvHeap->GetCPUDescriptorHandleForHeapStart());
+    XrTime xr_tm;
 
-    // レンダーターゲットのクリア
-    FLOAT clearColor[] = { 0.0f, 0.2f, 0.4f, 1.0f }; // 濃い青
+    if (flg_useVRMode) {
 
-    commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
+        XR_Manager->BeginFrame(xr_tm);                               // フレーム開始
 
-    // 深度バッファをクリア
-    commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
-    //レンダーターゲット（描画の出力先）
-    commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, &dsvHandle);
-
-    // ビューポート
-    D3D12_VIEWPORT viewport = { 0.0f, 0.0f, (float)ResResolution.x, (float)ResResolution.y, 0.0f, 1.0f };
-    commandList->RSSetViewports(1, &viewport);
-
-    //シザー矩形（切り抜き）
-    D3D12_RECT scissorRect = { 0, 0, ResResolution.x, ResResolution.y };
-    commandList->RSSetScissorRects(1, &scissorRect);
+    }
 
 
 
-    //描画コマンド
-
-    //idx = 0 板ポリシェーダー, 1 地面シェーダー を使うルールになっている
-
-    for (int idx = 0; idx < 2; idx++) {
+    for (size_t viewIdx = 0; viewIdx < viewNum; viewIdx++) {
 
 
-        // ルートシグネチャ （描画ルール
-        commandList->SetGraphicsRootSignature(rootSignature[idx].Get());
 
 
-        // CBV 定数バッファ　（シェーダーに渡す変数情報
-        commandList->SetGraphicsRootConstantBufferView(0, constantBuffer->GetGPUVirtualAddress());  //シェーダー（hlsl）の、 register(b0) に登録。もっと渡したい場合は、b1, b2となっていく
-        //commandList->SetGraphicsRootConstantBufferView(1, constantBuffer2->GetGPUVirtualAddress());   //たとえば、register(b1)に別の変数情報を渡したい場合は、こんな感じです
+        {
+            //バリア変更　（「表示して良い」という状態から「描画します」という状態へ
 
-        // SRV シェーダーリソースビュー　（シェーダーに渡すテクスチャー情報
-        ID3D12DescriptorHeap* ppHeaps[] = { srvHeap.Get() };
-        commandList->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
-        commandList->SetGraphicsRootDescriptorTable(1, srvHeap->GetGPUDescriptorHandleForHeapStart());
+            CD3DX12_RESOURCE_BARRIER transitionBarrier = CD3DX12_RESOURCE_BARRIER::Transition(
+                renderTargets[currentFrameIndex].Get(),
+                D3D12_RESOURCE_STATE_PRESENT,
+                D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-        // パイプラインステート （描画ルール
-        commandList->SetPipelineState(pipelineState[idx].Get());
+            commandList->ResourceBarrier(1, &transitionBarrier);
+        }
+
+
+        // Get descriptor handle for the current render target view
+        UINT rtvDescriptorSize = dx12Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+
+        // レンダーターゲットのクリア用
+        FLOAT clearColor[] = { 0.0f, 0.2f, 0.4f, 1.0f }; // 濃い青
+
+
+
+        if (!flg_useVRMode) {
+
+            //通常
+
+            CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(rtvHeap->GetCPUDescriptorHandleForHeapStart(), currentFrameIndex, rtvDescriptorSize);
+
+            CD3DX12_CPU_DESCRIPTOR_HANDLE dsvHandle(dsvHeap->GetCPUDescriptorHandleForHeapStart());
+
+            // レンダーターゲットをクリア
+            commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
+
+            // 深度バッファをクリア
+            commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+
+            // 描画の出力先
+            commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, &dsvHandle);
+
+        }
+        else {
+
+            //VR
+
+            //OutputDebugStringA("[TEST] BeginFrame \n");
+
+
+
+            //OutputDebugStringA("[TEST] GetEyeMatrix \n");
+            XR_Manager->GetEyeMatrix(xr_tm, nearZ, farZ, eyesData);
+
+            //OutputDebugStringA("[TEST] BeginEyeDirect \n");
+            OpenXRManager::EyeDirectTarget tgt{};
+            XR_Manager->BeginEyeDirect(commandList.Get(), viewIdx, tgt);
+
+            //CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(rtvHeap->GetCPUDescriptorHandleForHeapStart(), currentFrameIndex, rtvDescriptorSize);
+
+            //CD3DX12_CPU_DESCRIPTOR_HANDLE dsvHandle(dsvHeap->GetCPUDescriptorHandleForHeapStart());
+
+            //OutputDebugStringA("[TEST] ClearRenderTargetView \n");
+
+            // レンダーターゲットをクリア
+            commandList->ClearRenderTargetView(tgt.rtv, clearColor, 0, nullptr);
+
+            //OutputDebugStringA("[TEST] ClearDepthStencilView \n");
+            // 深度バッファをクリア
+            commandList->ClearDepthStencilView(tgt.dsv, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+
+            //OutputDebugStringA("[TEST] OMSetRenderTargets \n");
+
+            // 描画の出力先
+            commandList->OMSetRenderTargets(1, &tgt.rtv, FALSE, &tgt.dsv);
+            //commandList->OMSetRenderTargets(1, &tgt.rtv, FALSE, nullptr);
+
+
+
+
+        }
+
+
+        // ビューポート
+        D3D12_VIEWPORT viewport = { 0.0f, 0.0f, (float)ResResolution.x, (float)ResResolution.y, 0.0f, 1.0f };
+        commandList->RSSetViewports(1, &viewport);
+
+        //シザー矩形（切り抜き）
+        D3D12_RECT scissorRect = { 0, 0, ResResolution.x, ResResolution.y };
+        commandList->RSSetScissorRects(1, &scissorRect);
+
+
+
+        //描画コマンド
+
+        //idx = 0 板ポリシェーダー, 1 地面シェーダー を使うルールになっている
+
+        for (int idx = 0; idx < 2; idx++) {
+
+
+            // ルートシグネチャ （描画ルール
+            commandList->SetGraphicsRootSignature(rootSignature[idx].Get());
+
+
+            // CBV 定数バッファ　（シェーダーに渡す変数情報
+            commandList->SetGraphicsRootConstantBufferView(0, constantBuffer->GetGPUVirtualAddress());  //シェーダー（hlsl）の、 register(b0) に登録。もっと渡したい場合は、b1, b2となっていく
+            //commandList->SetGraphicsRootConstantBufferView(1, constantBuffer2->GetGPUVirtualAddress());   //たとえば、register(b1)に別の変数情報を渡したい場合は、こんな感じです
+
+            // SRV シェーダーリソースビュー　（シェーダーに渡すテクスチャー情報
+            ID3D12DescriptorHeap* ppHeaps[] = { srvHeap.Get() };
+            commandList->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
+            commandList->SetGraphicsRootDescriptorTable(1, srvHeap->GetGPUDescriptorHandleForHeapStart());
+
+            // パイプラインステート （描画ルール
+            commandList->SetPipelineState(pipelineState[idx].Get());
+
+
+            {
+
+                //頂点描画
+
+                int drawNum = 1;    //描画数
+
+                if (idx == 0) {
+
+                    drawNum = 1 + mobPos.size();    //板ポリ描画時は、3枚に変えている
+
+                }
+
+                commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);   //三角形で書きます
+
+                //
+                commandList->IASetVertexBuffers(0, 1, &vertexBufferViewArray[idx]);   //頂点情報リソースのビュー（情報）
+
+                //インデックスバッファ（リソース）
+                commandList->IASetIndexBuffer(&indexBufferViewArray[idx]);    //頂点インデックス情報リソースのビュー（情報）
+
+
+                //描画開始
+                commandList->DrawIndexedInstanced(
+                    vertexInfoArray[idx].indexBufferSize, // 描画する頂点インデックスの数
+                    drawNum,  // 描画数（その同じ情報を何回描画するか。板ポリは３回書いている（0 キャラクター, 1 モブ, 2 コイン
+                    0,  // 開始インデックス
+                    0,  // ベース頂点
+                    0   // 開始インスタンス
+                );
+
+
+            }
+        }
+
+
+
 
 
         {
 
-            //頂点描画
+            //バリア変更　（「描画します」という状態から「表示して良い」という状態へ
 
-            int drawNum = 1;    //描画数
+            CD3DX12_RESOURCE_BARRIER transitionBarrier = CD3DX12_RESOURCE_BARRIER::Transition(
+                renderTargets[currentFrameIndex].Get(),
+                D3D12_RESOURCE_STATE_RENDER_TARGET,
+                D3D12_RESOURCE_STATE_PRESENT);
 
-            if (idx == 0) {
-
-                drawNum = 1 + mobPos.size();    //板ポリ描画時は、3枚に変えている
-
-            }
-
-            commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);   //三角形で書きます
-
-            //
-            commandList->IASetVertexBuffers(0, 1, &vertexBufferViewArray[idx]);   //頂点情報リソースのビュー（情報）
-
-            //インデックスバッファ（リソース）
-            commandList->IASetIndexBuffer(&indexBufferViewArray[idx]);    //頂点インデックス情報リソースのビュー（情報）
+            commandList->ResourceBarrier(1, &transitionBarrier);
+        }
 
 
-            //描画開始
-            commandList->DrawIndexedInstanced(
-                vertexInfoArray[idx].indexBufferSize, // 描画する頂点インデックスの数
-                drawNum,  // 描画数（その同じ情報を何回描画するか。板ポリは３回書いている（0 キャラクター, 1 モブ, 2 コイン
-                0,  // 開始インデックス
-                0,  // ベース頂点
-                0   // 開始インスタンス
-            );
+
+
+
+
+
+        if (flg_useVRMode) {
+
+
+            XR_Manager->EndEyeDirect(commandList.Get(), viewIdx);
 
 
         }
-    }
 
 
-
-    
-
-    {
-
-        //バリア変更　（「描画します」という状態から「表示して良い」という状態へ
-
-        CD3DX12_RESOURCE_BARRIER transitionBarrier = CD3DX12_RESOURCE_BARRIER::Transition(
-            renderTargets[currentFrameIndex].Get(),
-            D3D12_RESOURCE_STATE_RENDER_TARGET,
-            D3D12_RESOURCE_STATE_PRESENT);
-
-        commandList->ResourceBarrier(1, &transitionBarrier);
     }
 
 
@@ -1897,12 +1994,31 @@ void DirectX12App::Render() {
 
     }
 
+    if (flg_useVRMode) {
 
-    // スワップチェーンを切り替える
-    swapChain->Present(1, 0);   //垂直同期 (VSync)  0は無効、1は次の垂直同期信号まで待機,  0: 最も一般的な値で、特別なフラグを指定しない
 
-    //表示していない方の、レンダーターゲット番号を取得
-    currentFrameIndex = swapChain->GetCurrentBackBufferIndex();//現在、描画されていない方のターゲット番号
+
+        XR_Manager->EndFrameWithProjection(
+            eyesData,
+            nearZ, farZ,
+            OpenXRManager::recommendedScaledResolution, xr_tm);
+
+    }
+
+
+    if (!flg_useVRMode) {
+
+        //通常
+
+        // スワップチェーンを切り替える
+        swapChain->Present(1, 0);   //垂直同期 (VSync)  0は無効、1は次の垂直同期信号まで待機,  0: 最も一般的な値で、特別なフラグを指定しない
+
+        //表示していない方の、レンダーターゲット番号を取得
+        currentFrameIndex = swapChain->GetCurrentBackBufferIndex();//現在、描画されていない方のターゲット番号
+
+    }
+
+
 
 
 
