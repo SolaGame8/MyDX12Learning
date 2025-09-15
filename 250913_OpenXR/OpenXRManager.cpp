@@ -239,6 +239,8 @@ bool OpenXRManager::Initialize(ID3D12Device* d3d12Device, ID3D12CommandQueue* co
     if (!CreateSession(d3d12Device, commQueue)) return false;        //セッション作成
 
 
+
+
     if (!CreateReferenceSpace(true)) return false;                  //スペースの作成（bool ステージ優先にするかどうか）
 
     /*
@@ -253,7 +255,12 @@ bool OpenXRManager::Initialize(ID3D12Device* d3d12Device, ID3D12CommandQueue* co
         座位・立位どちらでも使える、最も「安全な選択肢」
 
     */
-    
+
+
+
+
+
+
     //スワップチェーン
     if (!CreateSwapchains(
         d3d12Device, xr_viewCount,                   //2
@@ -266,6 +273,12 @@ bool OpenXRManager::Initialize(ID3D12Device* d3d12Device, ID3D12CommandQueue* co
     //セッションスタート
     Start_XR_Session();
 
+
+    //コントローラー初期化
+
+    (void)InitControllers();
+
+    //InitSimpleControllerTest();
 
 
 
@@ -513,6 +526,7 @@ bool OpenXRManager::CreateSession(ID3D12Device* d3d12Device, ID3D12CommandQueue*
     sci.systemId = xr_systemId;
 
     XrResult r = xrCreateSession(xr_instance, &sci, &xr_session);
+
     if (!XR_SUCCEEDED(r)) {
         std::ostringstream oss;
         oss << "xrCreateSession failed: " << r << "\n";
@@ -873,6 +887,29 @@ bool OpenXRManager::CreateSwapchains(
 
 
 
+bool OpenXRManager::InitControllers() {
+
+    //コントローラー初期化
+
+    if (xr_instance == XR_NULL_HANDLE || xr_session == XR_NULL_HANDLE || xr_appSpace == XR_NULL_HANDLE) {
+        OutputDebugStringA("[XR] InitControllers: instance/session/appSpace not ready.\n");
+        controllersReady = false;
+        return false;
+    }
+    controllersReady = controller.Initialize(xr_instance, xr_session, xr_appSpace);
+
+    if (controllersReady) {
+        OutputDebugStringA("[XR] Controllers initialized.\n");
+    }
+    else {
+        OutputDebugStringA("[XR] Controllers init FAILED.\n");
+    }
+
+    return controllersReady;
+
+}
+
+
 
 
 
@@ -883,7 +920,7 @@ void OpenXRManager::UpdateSessionState() {
     XrEventDataBuffer ev = {};                  //イベント受け取りバッファ
     ev.type = XR_TYPE_EVENT_DATA_BUFFER;
 
-    XrResult r = xrPollEvent(xr_instance, &ev); //イベントを 1件 だけ取り出す
+    XrResult r = xrPollEvent(xr_instance, &ev); //イベントを 1件 だけ取り出す   //＊＊＊コントローラーの情報取得もこれの実行が必要だった。OpenXR は 「イベント駆動型」
     if (r != XR_SUCCESS) return;
 
     switch (ev.type) {
@@ -907,6 +944,10 @@ void OpenXRManager::UpdateSessionState() {
     default:
         break;
     }
+
+
+
+
 }
 
 
@@ -969,6 +1010,15 @@ bool OpenXRManager::BeginFrame(XrTime& predictedDisplayTime) {
     r = xrBeginFrame(xr_session, &bi);
     if (!XR_SUCCEEDED(r)) return false;
 
+    // コントローラ同期
+    if (controllersReady) {
+        controller.Sync(xr_session, predictedDisplayTime);
+    }
+
+    //PollSimpleController();
+
+
+
     return true;
 }
 
@@ -977,6 +1027,25 @@ bool OpenXRManager::BeginFrame(XrTime& predictedDisplayTime) {
 
 XMMATRIX OpenXRManager::CreateCameraViewMatrix(const XrPosef& pose) {
 
+    //カメラのビュー行列  //＊OpenXRと、DirectXの座標系の違いを考慮する
+
+    // OpenXR: RH, +Y up, -Z forward
+    const XMVECTOR q = XMVectorSet(pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w);
+
+    // 位置：RH→LH 変換（Z反転）
+    const XMVECTOR posLH = XMVectorSet(pose.position.x, pose.position.y, -pose.position.z, 1.0f);
+
+    // 向き：OpenXRの -Z / +Y を回してから RH→LH へZ反転
+    const XMVECTOR fwdRH = XMVector3Rotate(XMVectorSet(0, 0, -1, 0), q); // -Z を回す
+    const XMVECTOR upRH = XMVector3Rotate(XMVectorSet(0, 1, 0, 0), q); // +Y を回す
+
+    const XMVECTOR fwdLH = XMVectorSet(XMVectorGetX(fwdRH), XMVectorGetY(fwdRH), -XMVectorGetZ(fwdRH), 0.0f);
+    const XMVECTOR upLH = XMVectorSet(XMVectorGetX(upRH), XMVectorGetY(upRH), -XMVectorGetZ(upRH), 0.0f);
+
+    // LHのビュー行列を生成
+    return XMMatrixLookToLH(posLH, fwdLH, upLH);
+
+    /*
     // OpenXRの姿勢
     XMVECTOR q = XMVectorSet(pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w);
     XMVECTOR pos = XMVectorSet(pose.position.x, pose.position.y, pose.position.z, 0.0f);
@@ -986,6 +1055,7 @@ XMMATRIX OpenXRManager::CreateCameraViewMatrix(const XrPosef& pose) {
     XMVECTOR up = XMVector3Rotate(XMVectorSet(0, 1, 0, 0), q);
 
     return XMMatrixLookToLH(pos, fwd, up);
+    */
 
 }
 
@@ -1005,7 +1075,7 @@ DirectX::XMMATRIX OpenXRManager::XMMatrixFromXrPoseLH(const XrPosef& pose) {
 
 DirectX::XMMATRIX OpenXRManager::CreateProjectionMatrix(const XrFovf& fov, float nearZ, float farZ) {
 
-    // OpenXRのFOVからD3D用プロジェクション行列を生成
+    // OpenXRのFOVから、カメラのプロジェクション行列を生成
 
     float l = nearZ * tanf(fov.angleLeft);
     float r = nearZ * tanf(fov.angleRight);
@@ -1271,6 +1341,8 @@ bool OpenXRManager::BeginEyeDirect(
     ID3D12GraphicsCommandList* cmd,
     uint32_t eyeIndex,
     EyeDirectTarget& out) {
+
+
     out.rtv = D3D12_CPU_DESCRIPTOR_HANDLE{ 0 };
     out.dsv = D3D12_CPU_DESCRIPTOR_HANDLE{ 0 };
     out.size = recommendedScaledResolution;
@@ -1285,6 +1357,7 @@ bool OpenXRManager::BeginEyeDirect(
     uint32_t depthIdx = 0;
 
     auto cleanup_on_fail = [&]() {
+
         XrSwapchainImageReleaseInfo ri{ XR_TYPE_SWAPCHAIN_IMAGE_RELEASE_INFO };
         if (acquiredColor) xrReleaseSwapchainImage(xr_viewChainsColor[eyeIndex], &ri);
         if (acquiredDepth) xrReleaseSwapchainImage(xr_viewChainsDepth[eyeIndex], &ri);
@@ -1429,6 +1502,7 @@ bool OpenXRManager::CopyOneViewToSwapchain(
     ID3D12Resource* myColorRT, ID3D12Resource* myDepth,
     XrSwapchain colorChain, std::vector<XrSwapchainImageD3D12KHR>& colorImgs,
     XrSwapchain depthChain, std::vector<XrSwapchainImageD3D12KHR>& depthImgs) {
+
 
     // ---- COLOR ----
 
@@ -1726,6 +1800,10 @@ void OpenXRManager::OnDestroy() {
         EndSessionGracefully(2000); // 2秒待ち
     }
 
+    //コントローラー破棄
+    controller.OnDestroy();
+    controllersReady = false;
+
     //スペースの破棄
     if (xr_appSpace != XR_NULL_HANDLE) {
         xrDestroySpace(xr_appSpace);
@@ -1742,4 +1820,301 @@ void OpenXRManager::OnDestroy() {
     }
 
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//-----------------
+
+
+
+
+
+
+
+
+/*
+
+
+
+
+bool OpenXRManager::LogCurrentInteractionProfiles() {
+    if (xr_instance == XR_NULL_HANDLE || xr_session == XR_NULL_HANDLE) return false;
+
+    auto dump = [&](const char* userPathStr) {
+        XrPath userPath = XR_NULL_PATH;
+        if (XR_FAILED(xrStringToPath(xr_instance, userPathStr, &userPath))) return;
+
+        XrInteractionProfileState st{ XR_TYPE_INTERACTION_PROFILE_STATE };
+        if (XR_FAILED(xrGetCurrentInteractionProfile(xr_session, userPath, &st))) return;
+
+        char buf[512];
+        if (st.interactionProfile != XR_NULL_PATH) {
+            char pathStr[256] = {};
+            uint32_t outCount = 0;
+            xrPathToString(xr_instance, st.interactionProfile, sizeof(pathStr), &outCount, pathStr);
+            sprintf_s(buf, "[XR] current profile for %s = %s\n", userPathStr, pathStr);
+        }
+        else {
+            sprintf_s(buf, "[XR] current profile for %s = <none>\n", userPathStr);
+        }
+        OutputDebugStringA(buf);
+        };
+    dump("/user/hand/left");
+    dump("/user/hand/right");
+    return true;
+}
+
+
+bool OpenXRManager::XR_OK_(XrResult r, const char* where) {
+    if (XR_FAILED(r)) {
+        char name[128] = {};
+        if (xr_instance != XR_NULL_HANDLE) xrResultToString(xr_instance, r, name);
+        char buf[256];
+        sprintf_s(buf, "[XR][ERR] %s -> 0x%08X (%s)\n", where, r, name[0] ? name : "unknown");
+        OutputDebugStringA(buf);
+        return false;
+    }
+    return true;
+}
+
+bool OpenXRManager::InitSimpleControllerTest() {
+
+
+    if (xr_instance == XR_NULL_HANDLE || xr_session == XR_NULL_HANDLE) {
+        OutputDebugStringA("[XR][ERR] InitSimpleControllerTest: xrInstance_ or xrSession_ is null\n");
+        return false;
+    }
+
+    if (!XR_OK_(xrStringToPath(xr_instance, "/user/hand/left", &pathLeft_), "xrStringToPath left"))  return false;
+    if (!XR_OK_(xrStringToPath(xr_instance, "/user/hand/right", &pathRight_), "xrStringToPath right")) return false;
+
+    {
+        XrActionSetCreateInfo ci{ XR_TYPE_ACTION_SET_CREATE_INFO };
+        strncpy_s(ci.actionSetName, XR_MAX_ACTION_SET_NAME_SIZE, "test_set", _TRUNCATE);
+        strncpy_s(ci.localizedActionSetName, XR_MAX_LOCALIZED_ACTION_SET_NAME_SIZE, "Test Set", _TRUNCATE);
+        ci.priority = 0;
+
+        if (!XR_OK_(xrCreateActionSet(xr_instance, &ci, &actionSet_), "xrCreateActionSet"))
+            return false;
+    }
+
+    {
+        XrActionCreateInfo ai{ XR_TYPE_ACTION_CREATE_INFO };
+        ai.actionType = XR_ACTION_TYPE_BOOLEAN_INPUT;
+        strncpy_s(ai.actionName, XR_MAX_ACTION_NAME_SIZE, "select", _TRUNCATE);
+        strncpy_s(ai.localizedActionName, XR_MAX_LOCALIZED_ACTION_NAME_SIZE, "Select", _TRUNCATE);
+
+        XrPath subpaths[2] = { pathLeft_, pathRight_ };
+        ai.countSubactionPaths = 2;
+        ai.subactionPaths = subpaths;
+
+        if (!XR_OK_(xrCreateAction(actionSet_, &ai, &actSelect_), "xrCreateAction(select)"))
+            return false;
+    }
+
+    {
+        XrPath ipOculus = XR_NULL_PATH;
+        XrPath pathLeftX = XR_NULL_PATH;
+        XrPath pathRightA = XR_NULL_PATH;
+
+        //if (!XR_OK_(xrStringToPath(xr_instance, "/interaction_profiles/khr/simple_controller", &ipSimple), "xrStringToPath simple_controller")) return false;
+        if (!XR_OK_(xrStringToPath(xr_instance, "/interaction_profiles/oculus/touch_controller", &ipOculus), "xrStringToPath oculus_controller")) return false;
+
+
+        if (!XR_OK_(xrStringToPath(xr_instance, "/user/hand/left/input/x/click", &pathLeftX),
+            "xrStringToPath left x")) return false;
+        if (!XR_OK_(xrStringToPath(xr_instance, "/user/hand/right/input/a/click", &pathRightA),
+            "xrStringToPath right a")) return false;
+
+        XrActionSuggestedBinding binds[2] = {};
+        binds[0].action = actSelect_;
+        binds[0].binding = pathLeftX;
+        binds[1].action = actSelect_;
+        binds[1].binding = pathRightA;
+
+        XrInteractionProfileSuggestedBinding profile{ XR_TYPE_INTERACTION_PROFILE_SUGGESTED_BINDING };
+        profile.interactionProfile = ipOculus;
+        profile.countSuggestedBindings = 2;
+        profile.suggestedBindings = binds;
+
+        if (!XR_OK_(xrSuggestInteractionProfileBindings(xr_instance, &profile),
+            "xrSuggestInteractionProfileBindings"))
+            return false;
+    }
+
+    {
+        XrSessionActionSetsAttachInfo ai{ XR_TYPE_SESSION_ACTION_SETS_ATTACH_INFO };
+        ai.countActionSets = 1;
+        ai.actionSets = &actionSet_;
+        if (!XR_OK_(xrAttachSessionActionSets(xr_session, &ai), "xrAttachSessionActionSets"))
+            return false;
+    }
+
+    OutputDebugStringA("[XR] Simple controller test: init OK\n");
+    return true;
+}
+
+void OpenXRManager::PollSimpleController() {
+
+    if (actionSet_ == XR_NULL_HANDLE || actSelect_ == XR_NULL_HANDLE) {
+        return;
+    }
+
+    XrActiveActionSet active{};
+    active.actionSet = actionSet_;
+
+    XrActionsSyncInfo sync{ XR_TYPE_ACTIONS_SYNC_INFO };
+    sync.countActiveActionSets = 1;
+    sync.activeActionSets = &active;
+
+    if (!XR_OK_(xrSyncActions(xr_session, &sync), "xrSyncActions"))
+        return;
+
+    XrActionStateBoolean left{}; left.type = XR_TYPE_ACTION_STATE_BOOLEAN;
+    XrActionStateBoolean right{}; right.type = XR_TYPE_ACTION_STATE_BOOLEAN;
+
+    if (GetSelectState_(pathLeft_, left) && left.isActive && left.currentState) {
+        OutputDebugStringA("[XR] LEFT select = DOWN\n");
+    }
+    if (GetSelectState_(pathRight_, right) && right.isActive && right.currentState) {
+        OutputDebugStringA("[XR] RIGHT select = DOWN\n");
+    }
+
+
+    //LogCurrentInteractionProfiles();
+    //Diag_CheckPathsAndReSuggest();
+    //Diag_LogBasics();
+    //PumpEventsOnce();
+}
+
+bool OpenXRManager::GetSelectState_(XrPath subPath, XrActionStateBoolean& out) {
+    XrActionStateGetInfo gi{ XR_TYPE_ACTION_STATE_GET_INFO };
+    gi.action = actSelect_;
+    gi.subactionPath = subPath;
+
+    if (!XR_OK_(xrGetActionStateBoolean(xr_session, &gi, &out), "xrGetActionStateBoolean")) {
+        out.isActive = XR_FALSE;
+        out.currentState = XR_FALSE;
+        return false;
+    }
+    return true;
+}
+
+void OpenXRManager::ShutdownSimpleControllerTest() {
+    if (actSelect_ != XR_NULL_HANDLE) {
+        xrDestroyAction(actSelect_);
+        actSelect_ = XR_NULL_HANDLE;
+    }
+    if (actionSet_ != XR_NULL_HANDLE) {
+        xrDestroyActionSet(actionSet_);
+        actionSet_ = XR_NULL_HANDLE;
+    }
+    pathLeft_ = XR_NULL_PATH;
+    pathRight_ = XR_NULL_PATH;
+}
+
+void OpenXRManager::Diag_CheckPathsAndReSuggest() {
+    auto chk = [&](const char* p) {
+        XrPath x = XR_NULL_PATH;
+        XrResult r = xrStringToPath(xr_instance, p, &x);
+        char buf[256];
+        sprintf_s(buf, "[XR] path %s -> %s (0x%08X)\n", p, XR_SUCCEEDED(r) ? "OK" : "NG", r);
+        OutputDebugStringA(buf);
+        };
+
+    // プロファイル
+    chk("/interaction_profiles/khr/simple_controller");
+    chk("/interaction_profiles/oculus/touch_controller");
+    chk("/interaction_profiles/valve/index_controller");
+    chk("/interaction_profiles/htc/vive_controller");
+    chk("/interaction_profiles/microsoft/motion_controller");
+
+    // 入力パス（あなたが使っているもの）
+    chk("/user/hand/left/input/select/click");
+    chk("/user/hand/right/input/select/click");
+    chk("/user/hand/left/input/x/click");
+    chk("/user/hand/right/input/a/click");
+    chk("/user/hand/left/input/trigger/value");
+    chk("/user/hand/right/input/trigger/value");
+
+    // 念のため Re-Suggest（Attach 済みでも Suggest は呼べます）
+    //SuggestSimpleControllerSelect(xrInstance_, actSelect_);
+    //SuggestOculusTouchTrigger(xrInstance_, actTriggerF_);
+}
+
+
+void OpenXRManager::Diag_LogBasics() {
+
+    
+    // runtime name
+    XrInstanceProperties ip{ XR_TYPE_INSTANCE_PROPERTIES };
+    if (XR_SUCCEEDED(xrGetInstanceProperties(xr_instance, &ip))) {
+        char b[256];
+        sprintf_s(b, "[XR] runtime=%s ver=%u.%u.%u\n",
+            ip.runtimeName,
+            XR_VERSION_MAJOR(ip.runtimeVersion),
+            XR_VERSION_MINOR(ip.runtimeVersion),
+            XR_VERSION_PATCH(ip.runtimeVersion));
+        OutputDebugStringA(b);
+    }
+
+    // instance/session handles
+    {
+        char b[128];
+        sprintf_s(b, "[XR] handles instance=0x%p session=0x%p\n",
+            (void*)xr_instance, (void*)xr_session);
+        OutputDebugStringA(b);
+    }
+    
+
+    // 既にあなたのコードで保持しているキャッシュを表示してください
+    // 例: cachedSessionState_ を 0..n の整数で
+    {
+        char b[128];
+        sprintf_s(b, "[XR] cached session state=%d (expect FOCUSED=7 or VISIBLE=6)\n",
+            (int)xr_sessionState);
+        OutputDebugStringA(b);
+    }
+}
+
+void OpenXRManager::PumpEventsOnce() {
+    XrEventDataBuffer ev{ XR_TYPE_EVENT_DATA_BUFFER };
+    while (xrPollEvent(xr_instance, &ev) == XR_SUCCESS) {
+        if (ev.type == XR_TYPE_EVENT_DATA_INTERACTION_PROFILE_CHANGED) {
+            XrEventDataInteractionProfileChanged* pc =
+                (XrEventDataInteractionProfileChanged*)&ev;
+            OutputDebugStringA("[XR] EVENT: InteractionProfileChanged\n");
+            LogCurrentInteractionProfiles(); // ←あなたの既存関数
+        }
+        else if (ev.type == XR_TYPE_EVENT_DATA_SESSION_STATE_CHANGED) {
+            XrEventDataSessionStateChanged* sc =
+                (XrEventDataSessionStateChanged*)&ev;
+            xr_sessionState = sc->state; // 例
+            char b[128];
+            sprintf_s(b, "[XR] EVENT: SessionStateChanged -> %d\n", (int)xr_sessionState);
+            OutputDebugStringA(b);
+        }
+        ev = {}; ev.type = XR_TYPE_EVENT_DATA_BUFFER; // クリアして継続
+    }
+}
+*/
+
+
+
+
 

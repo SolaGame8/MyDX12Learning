@@ -23,6 +23,10 @@
     #pragma comment(lib, "openxr_loader.lib")
 #endif
 
+//コントローラーマネージャー
+#include "OpenXRController.h"
+
+
 #include <vector>
 
 using namespace DirectX;
@@ -65,6 +69,24 @@ public:
     XrSession  GetSession() const;
     XrSystemId GetSystemId() const;
     XrSpace    GetAppSpace()   const { return xr_appSpace; }
+
+
+    //コントローラー関連
+    
+    // コントローラ初期化（CreateReferenceSpace成功後に内部で呼ぶ）
+    bool InitControllers();
+
+    // 入力状態の取得（参照のみ）
+    const OpenXRController::State& GetLeftController()  const { return controller.Left(); }
+    const OpenXRController::State& GetRightController() const { return controller.Right(); }
+    
+    /*
+    // ハプティクス
+    bool ApplyControllerHaptics(bool leftHand, float amplitude, float seconds, float frequencyHz = 0.0f) {
+        return controller.ApplyHaptics(leftHand, amplitude, seconds, frequencyHz);
+    }
+    */
+
 
 
     /*
@@ -131,6 +153,10 @@ public:
 
     bool End_XR_Session();  // アプリ側から終了要求する（xrEndSession実行）
 
+
+    void UpdateSessionState();                  // セッション情報を更新
+
+
     void OnDestroy();
 
     //おすすめ解像度
@@ -144,6 +170,11 @@ public:
 
     static uint32_t xr_viewCount; //ビューの数。両目 = 2
 
+    //コントローラー
+    OpenXRController controller;
+    bool controllersReady = false;
+
+
 private:
 
     //ID3D12Device* d3d12Device_;
@@ -153,7 +184,6 @@ private:
     XrSession  xr_session = XR_NULL_HANDLE;
     XrSpace    xr_appSpace = XR_NULL_HANDLE;
 
-    
 
     // view ごとに 1本ずつ（片目ずつ）持つ想定
     std::vector<XrSwapchain> xr_viewChainsColor;
@@ -182,11 +212,34 @@ private:
     XrSessionState xr_sessionState = XR_SESSION_STATE_UNKNOWN;
     bool xr_sessionRunning = false;
 
-    void UpdateSessionState();                  // セッション情報を更新
+    
     bool EndSessionGracefully(uint32_t msTimeout = 2000); // 終了手順
 
     void DestroySwapchains();        // スワップチェーン破棄
 
+
+    //----
+    /*
+    bool LogCurrentInteractionProfiles(); // 片手ずつ現在のプロファイルを出力
+
+    bool InitSimpleControllerTest();   // セッション開始後に一度だけ
+    void PollSimpleController();       // 毎フレーム呼ぶ
+    void ShutdownSimpleControllerTest();
+
+    XrActionSet actionSet_ = XR_NULL_HANDLE;
+    XrAction    actSelect_ = XR_NULL_HANDLE;
+    XrPath      pathLeft_ = XR_NULL_PATH;
+    XrPath      pathRight_ = XR_NULL_PATH;
+
+    bool XR_OK_(XrResult r, const char* where);
+    bool GetSelectState_(XrPath subPath, XrActionStateBoolean& out);
+
+    void Diag_CheckPathsAndReSuggest();
+
+    void Diag_LogBasics();
+
+    void PumpEventsOnce();
+    */
 
 
 };

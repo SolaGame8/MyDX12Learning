@@ -220,6 +220,8 @@ void DirectX12App::InitVariable() {
     */
 
 
+
+
     //変数を設定
     pipelineState.resize(2);    //描画ルール ２つ（板ポリ、地面
     rootSignature.resize(2);
@@ -678,15 +680,18 @@ bool DirectX12App::CreatePipelineState(int idx) {
 
     
     // ルートパラメータの定義
-    CD3DX12_ROOT_PARAMETER rootParameters[2];
+    CD3DX12_ROOT_PARAMETER rootParameters[3];
     // 定数バッファビュー（CBV）をルートパラメータとして追加
     // b0 レジスタをバインド
     rootParameters[0].InitAsConstantBufferView(0, 0, D3D12_SHADER_VISIBILITY_ALL);  //CBV 定数バッファ
 
     CD3DX12_DESCRIPTOR_RANGE ranges[1];
     ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 3, 0); // 複数のSRV
-
     rootParameters[1].InitAsDescriptorTable(1, ranges, D3D12_SHADER_VISIBILITY_PIXEL); // テクスチャー
+
+    // b1: Root Constants (32bit x 1）
+    rootParameters[2].InitAsConstants( 1, 1, 0,   //num32BitValues, shaderRegister(b1), space
+        D3D12_SHADER_VISIBILITY_ALL);
 
 
     // サンプラーの定義
@@ -701,7 +706,7 @@ bool DirectX12App::CreatePipelineState(int idx) {
     // ルートシグネチャの作成
     CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc;
     rootSignatureDesc.Init(
-        _countof(rootParameters), // パラメータ数: 2
+        _countof(rootParameters), // パラメータ数: 3
         rootParameters,
         1, 
         &samplerDesc,   //サンプラー
@@ -1449,17 +1454,17 @@ void DirectX12App::CalcCamera() {
     XMVECTOR at = XMLoadFloat3(&cameraCurrentTarget);
     XMVECTOR up = XMLoadFloat3(&cameraUp);
 
-    conBufData.viewMat = XMMatrixLookAtLH(eye, at, up); //ビュー
+    conBufData.viewMat[0] = XMMatrixLookAtLH(eye, at, up); //ビュー
 
     float fovAngleY = XM_PIDIV4; // 視野角 (45度)
     float aspectRatio = (float)ResResolution.x / (float)ResResolution.y; // 画面解像度からアスペクト比を計算
     float nearZ = 0.01f; // 近クリップ面
     float farZ = 100.0f; // 遠クリップ面
 
-    conBufData.projMat = XMMatrixPerspectiveFovLH(fovAngleY, aspectRatio, nearZ, farZ); //プロジェクション
+    conBufData.projMat[0] = XMMatrixPerspectiveFovLH(fovAngleY, aspectRatio, nearZ, farZ); //プロジェクション
 
     //モデルの回転用
-    conBufData.worldMat = XMMatrixIdentity();
+    conBufData.worldMat[0] = XMMatrixIdentity();
 
 
 }
@@ -1490,43 +1495,91 @@ void DirectX12App::CalcKey() {
 
     charaTexNum = 0;    //キャラクターのテクスチャーを、ひとまず正面に向いた状態にする
 
-
     XMFLOAT2 vecForward = { -sin(cameraRot.y * XM_PI / 180.0f) , cos(cameraRot.y * XM_PI / 180.0f) };
     XMFLOAT2 vecRight = { cos(cameraRot.y * XM_PI / 180.0f) , sin(cameraRot.y * XM_PI / 180.0f) };
+
+    if (flg_useVRMode) {
+
+        vecForward = XMFLOAT2(0.0f, 1.0f);
+        vecRight = XMFLOAT2(1.0f, 0.0f);
+
+    }
+    else {
+        vecForward = { -sin(cameraRot.y * XM_PI / 180.0f) , cos(cameraRot.y * XM_PI / 180.0f) };
+        vecRight = { cos(cameraRot.y * XM_PI / 180.0f) , sin(cameraRot.y * XM_PI / 180.0f) };
+    }
+
+
 
 
     // WASDキーの状態をチェック
     float moveSpeed = 10.0f * deltaTime; // 移動速度を調整
 
+
+    bool onKey_jump = GetAsyncKeyState(VK_SPACE) & 0x8000;
+
+    bool onKey_forward = GetAsyncKeyState('W') & 0x8000;
+    bool onKey_back = GetAsyncKeyState('S') & 0x8000;
+    bool onKey_left = GetAsyncKeyState('A') & 0x8000;
+    bool onKey_right = GetAsyncKeyState('D') & 0x8000;
+
+
     // Wキー: 前方向へ移動 (y座標を増やす)
-    if (GetAsyncKeyState('W') & 0x8000) {
+    if (onKey_forward) {
         charaPos.x += vecForward.x * moveSpeed;
         charaPos.z += vecForward.y * moveSpeed;
     }
     // Sキー: 後ろ方向へ移動 (y座標を減らす)
-    if (GetAsyncKeyState('S') & 0x8000) {
+    if (onKey_back) {
         charaPos.x -= vecForward.x * moveSpeed;
         charaPos.z -= vecForward.y * moveSpeed;
     }
 
     // Aキー: 左方向へ移動 (x座標を減らす)
-    if (GetAsyncKeyState('A') & 0x8000) {
+    if (onKey_left) {
         charaPos.x -= vecRight.x * moveSpeed;
         charaPos.z -= vecRight.y * moveSpeed;
 
         charaTexNum = 4;    //キャラクターのテクスチャーを、左向きの位置に
     }
     // Dキー: 右方向へ移動 (x座標を増やす)
-    if (GetAsyncKeyState('D') & 0x8000) {
+    if (onKey_right) {
         charaPos.x += vecRight.x * moveSpeed;
         charaPos.z += vecRight.y * moveSpeed;
 
         charaTexNum = 2;    //キャラクターのテクスチャーを、右向きの位置に
-
     }
 
-    //スペースキー
-    if (GetAsyncKeyState(VK_SPACE) & 0x8000) {
+
+
+    // VR
+    if (flg_useVRMode) {
+        if (XR_Manager->controllersReady) {
+
+            const float deadzone = 0.05f;
+            XrVector2f stick = XR_Manager->controller.GetValue_Right_Stick(deadzone);
+
+            charaPos.x += vecForward.x * stick.y * moveSpeed;
+            charaPos.z += vecForward.y * stick.y * moveSpeed;
+
+            charaPos.x += vecRight.x * stick.x * moveSpeed;
+            charaPos.z += vecRight.y * stick.x * moveSpeed;
+
+            onKey_jump = XR_Manager->controller.OnPush_Right_A();
+
+
+            if (XR_Manager->controller.OnPush_Left_X()) {
+                XR_Manager->controller.ApplyHaptics(true, 0.5f, 0.5f, 0.0f); //leftHand, 強さ, 秒数, 周波数（0.0で、ランタイムにまかせる）
+            }
+
+        }
+    }
+
+
+
+
+    //ジャンプ
+    if (onKey_jump) {
         
         if (isOnGround) {
             charaJumpAcc = 0.1f;
@@ -1634,6 +1687,12 @@ void DirectX12App::OnUpdate() {
     updateCounter += deltaTime;
 
 
+    //OpenXR 情報更新
+    XR_Manager->UpdateSessionState();
+
+
+
+
     //キー操作
     CalcKey();
 
@@ -1716,6 +1775,38 @@ void DirectX12App::OnUpdate() {
     mobPos[0].y = mobTarget.y + 1.0f;
 
 
+
+    //コイン
+
+    // VRの場合は、右コントローラーの位置
+    if (flg_useVRMode) {
+        if (XR_Manager->controllersReady) {
+
+            XrPosef rightControllerPose = XR_Manager->controller.GetPose_RightController();
+
+            XMFLOAT3  offsetPos = XMFLOAT3(0.0f, -1.0f, -5.0f);
+
+            mobPos[1].x = rightControllerPose.position.x + offsetPos.x;
+            mobPos[1].y = rightControllerPose.position.y + offsetPos.y;
+            mobPos[1].z = rightControllerPose.position.z + offsetPos.z;
+
+            /*
+            {
+                char buf[256];
+                sprintf_s(buf,
+                    "[mob] %f, %f, %f\n",
+                    mobPos[0].x,
+                    mobPos[0].y,
+                    mobPos[0].z
+                );
+                OutputDebugStringA(buf);
+            }
+            */
+
+        }
+    }
+
+
     //テクスチャーアニメーションのテーブル
     int aniTable[] = { 0, 1, 2, 3, 2, 1 };
 
@@ -1773,7 +1864,7 @@ void DirectX12App::Render() {
     int viewNum = 1;
 
     if (flg_useVRMode) {
-        viewNum = XR_Manager->xr_viewCount;
+        viewNum = XR_Manager->xr_viewCount;//2
     }
 
 
@@ -1834,41 +1925,53 @@ void DirectX12App::Render() {
             // 描画の出力先
             commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, &dsvHandle);
 
+
+
+
+
         }
         else {
 
             //VR
 
-            //OutputDebugStringA("[TEST] BeginFrame \n");
-
-
-
-            //OutputDebugStringA("[TEST] GetEyeMatrix \n");
+            //VRの両目の位置のカメラ行列を取得
             XR_Manager->GetEyeMatrix(xr_tm, nearZ, farZ, eyesData);
 
-            //OutputDebugStringA("[TEST] BeginEyeDirect \n");
+            {
+                //CBV（定数バッファ更新） シェーダーで受け取る変数
+
+                XMMATRIX offsetMat = XMMatrixTranslation(0.0f, 1.0f, 5.0f); //原点（0,0,0）から、ヘッドマウントの視点をオフセット
+
+                for (size_t n = 0; n < 2; n++) {    //右目と左目、２つ分のカメラの変換行列
+
+                    if (n < eyesData.size()) {
+                        conBufData.viewMat[n] = offsetMat * eyesData[n].viewMat; //ビュー
+                        conBufData.projMat[n] = eyesData[n].projMat; //プロジェクション
+                        conBufData.worldMat[n] = XMMatrixIdentity();
+                    }
+
+                }
+
+                //CBV 更新
+                memcpy(pConstData, &conBufData, sizeof(ConstantBufferData));
+            }
+
+
+            //VRのスワップチェーンの描画先を取得
             OpenXRManager::EyeDirectTarget tgt{};
             XR_Manager->BeginEyeDirect(commandList.Get(), viewIdx, tgt);
 
-            //CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(rtvHeap->GetCPUDescriptorHandleForHeapStart(), currentFrameIndex, rtvDescriptorSize);
-
-            //CD3DX12_CPU_DESCRIPTOR_HANDLE dsvHandle(dsvHeap->GetCPUDescriptorHandleForHeapStart());
-
-            //OutputDebugStringA("[TEST] ClearRenderTargetView \n");
 
             // レンダーターゲットをクリア
             commandList->ClearRenderTargetView(tgt.rtv, clearColor, 0, nullptr);
 
-            //OutputDebugStringA("[TEST] ClearDepthStencilView \n");
             // 深度バッファをクリア
             commandList->ClearDepthStencilView(tgt.dsv, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
-            //OutputDebugStringA("[TEST] OMSetRenderTargets \n");
 
             // 描画の出力先
             commandList->OMSetRenderTargets(1, &tgt.rtv, FALSE, &tgt.dsv);
             //commandList->OMSetRenderTargets(1, &tgt.rtv, FALSE, nullptr);
-
 
 
 
@@ -1907,6 +2010,30 @@ void DirectX12App::Render() {
 
             // パイプラインステート （描画ルール
             commandList->SetPipelineState(pipelineState[idx].Get());
+
+
+            if (!flg_useVRMode) {
+
+                //通常
+
+                // 使用するカメラ変換行列の番号。Root Constant（ルートシグネチャをコマンドに渡した後に使える）
+
+                uint32_t matIndex = 0;
+                commandList->SetGraphicsRoot32BitConstants(2, 1, &matIndex, 0); //最初の 2 は、rootParameters[2]に登録した、ということ。rootParameters[2]で、b1を指定してる
+
+
+            }
+            else {
+
+                //VR
+
+                // 使用するカメラ変換行列の番号。Root Constant（ルートシグネチャをコマンドに渡した後に使える）
+
+                uint32_t matIndex = viewIdx;
+                commandList->SetGraphicsRoot32BitConstants(2, 1, &matIndex, 0); //最初の 2 は、rootParameters[2]に登録した、ということ。rootParameters[2]で、b1を指定してる
+
+            }
+
 
 
             {

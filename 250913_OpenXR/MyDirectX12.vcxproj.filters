@@ -36,6 +36,9 @@
     <ClCompile Include="OpenXRManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="OpenXRController.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="WindowManager.h">
@@ -51,6 +54,9 @@
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="OpenXRManager.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="OpenXRController.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>

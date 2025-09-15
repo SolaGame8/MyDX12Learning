@@ -17,9 +17,9 @@ cbuffer MyConstants : register(b0)  //b0に登録した情報を取得
         //＊3D空間での位置は、このようにfloat4ではなく、matrix（位置、回転、スケールが合わさったもの）で情報を渡した方がいいです
         //その情報を、worldMatとして扱う感じです
     
-    matrix worldMat;    //不使用（変化なし行列）　3D空間でのキャラクターの移動回転などに使う
-    matrix viewMat;     //カメラのビュー行列
-    matrix projMat;     //カメラのプロジェクション行列
+    matrix worldMat[2]; //不使用（変化なし行列）　3D空間でのキャラクターの移動回転などに使う
+    matrix viewMat[2];  //カメラのビュー行列
+    matrix projMat[2];  //カメラのプロジェクション行列
     
     /*
     このCBV 定数バッファ（変数情報）は、16バイトを意識した方がいいです（16バイト アライメント）
@@ -42,6 +42,11 @@ cbuffer MyConstants : register(b1)
     float4 anotherInfo[16];
 };
 */
+
+cbuffer RootConstant : register(b1)
+{
+    uint matIndex;
+};
 
 
 
@@ -125,9 +130,9 @@ VertexOut VSMain(VertexIn vin)
     
     
     //カメラの変換行列（掛ける順番注意）
-    pos = mul(worldMat, pos);
-    pos = mul(viewMat, pos);
-    pos = mul(projMat, pos);
+    pos = mul(worldMat[matIndex], pos);
+    pos = mul(viewMat[matIndex], pos);
+    pos = mul(projMat[matIndex], pos);
     
     
     //ピクセルシェーダーに渡す値

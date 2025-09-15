@@ -3,9 +3,9 @@ cbuffer MyConstants : register(b0)
 {
     float4 shaderParam[8]; // float4を8つ格納
     
-    matrix worldMat;
-    matrix viewMat;
-    matrix projMat;
+    matrix worldMat[2];
+    matrix viewMat[2];
+    matrix projMat[2];
     
     /*
     //たとえば太陽光などを計算したい場合はこのように、太陽の向きのベクトルを受け取ったりします
@@ -13,6 +13,12 @@ cbuffer MyConstants : register(b0)
     */
     
 };
+
+cbuffer RootConstant : register(b1)
+{
+    uint matIndex;
+};
+
 
 Texture2D texArray[3] : register(t0); // 複数のテクスチャを配列として定義   //0 chara, 1 map
 SamplerState smp : register(s0);        //サンプラー（画像の色を取得する）
@@ -51,9 +57,9 @@ VertexOut VSMain(VertexIn vin)
     
     
     //カメラの変換行列
-    pos = mul(worldMat, pos);
-    pos = mul(viewMat, pos);
-    pos = mul(projMat, pos);
+    pos = mul(worldMat[matIndex], pos);
+    pos = mul(viewMat[matIndex], pos);
+    pos = mul(projMat[matIndex], pos);
     
     
     

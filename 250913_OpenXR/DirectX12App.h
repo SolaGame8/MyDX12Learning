@@ -160,12 +160,12 @@ private:
     {
         XMFLOAT4 shaderParam[8];
 
-        XMMATRIX worldMat;
-        XMMATRIX viewMat;
-        XMMATRIX projMat;
+        XMMATRIX worldMat[2];
+        XMMATRIX viewMat[2];
+        XMMATRIX projMat[2];
     };
 
-    ConstantBufferData conBufData = {};
+    ConstantBufferData conBufData;
 
     void* pConstData = nullptr;   //ここがconstantBufferのリソース位置。ここに変数データを上書きするとシェーダーに渡される値が更新される
 

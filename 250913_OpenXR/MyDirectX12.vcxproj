@@ -103,6 +103,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(DXTEX_DIR);$(INCLUDE_ROOT)\OpenXR-SDK\include;</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -119,6 +120,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(DXTEX_DIR);$(INCLUDE_ROOT)\OpenXR-SDK\include;</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -129,6 +131,7 @@
   <ItemGroup>
     <ClCompile Include="DirectX12App.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="OpenXRController.cpp" />
     <ClCompile Include="OpenXRManager.cpp" />
     <ClCompile Include="PerlinNoise.cpp" />
     <ClCompile Include="TextureManager.cpp" />
@@ -136,6 +139,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DirectX12App.h" />
+    <ClInclude Include="OpenXRController.h" />
     <ClInclude Include="OpenXRManager.h" />
     <ClInclude Include="PerlinNoise.h" />
     <ClInclude Include="TextureManager.h" />
