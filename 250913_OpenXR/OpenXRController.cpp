@@ -824,6 +824,7 @@ bool OpenXRController::Sync(XrSession session, XrTime predictedDisplayTime) {
     xrSession_ = session;
 
     XrResult sr = xrSyncActions(session, &sync);
+
     if (!XR_SUCCEEDED(sr)) {
         char buf[128];
         sprintf_s(buf, "[XR][ERROR] xrSyncActions failed (0x%08X)\n", sr);
@@ -982,12 +983,14 @@ XrVector2f OpenXRController::GetValue_Right_Stick() const { return stateRight.th
 // デッドゾーン適用版（半径dz）
 // 例: dz=0.15f。半径dz未満は(0,0)。それ以外は 0..1 に再マップ（放射状デッドゾーン）
 XrVector2f OpenXRController::GetValue_Left_Stick(float dz) const {
+
     XrVector2f v = stateLeft.thumbstick;
     float d = (dz < 0.0f ? 0.0f : (dz > 0.99f ? 0.99f : dz));
     float m = std::sqrt(v.x * v.x + v.y * v.y);
     if (m < d) return XrVector2f{ 0.0f, 0.0f };
     float s = (m - d) / (1.0f - d);            // 0..1 に再マップ
     float invm = (m > 0.0f) ? (s / m) : 0.0f;
+
     return XrVector2f{ v.x * invm, v.y * invm };
 }
 XrVector2f OpenXRController::GetValue_Right_Stick(float dz) const {
@@ -1086,6 +1089,7 @@ bool OpenXRController::OnPush_Right_Stick() const { return OnPushStick(/*leftHan
 
 // ===== ハプティクス =====
 bool OpenXRController::ApplyHaptics(bool leftHand, float amplitude, float seconds, float frequencyHz) {
+
     XrHapticVibration vib{ XR_TYPE_HAPTIC_VIBRATION };
     vib.amplitude = std::clamp(amplitude, 0.0f, 1.0f);
     vib.duration = (XrDuration)(seconds * 1e9); // ns
@@ -1095,6 +1099,7 @@ bool OpenXRController::ApplyHaptics(bool leftHand, float amplitude, float second
     hi.action = actHaptic_;
     hi.subactionPath = leftHand ? pathLeft : pathRight;
     return XR_SUCCEEDED(xrApplyHapticFeedback(xrSession_, &hi, (XrHapticBaseHeader*)&vib));
+
 }
 
 // ===== ユーティリティ =====
@@ -1102,8 +1107,10 @@ bool OpenXRController::ReadBool(XrAction a, XrPath sub, bool& dst) const {
 
 
     XrActionStateBoolean st{ XR_TYPE_ACTION_STATE_BOOLEAN };
+
     XrActionStateGetInfo gi{ XR_TYPE_ACTION_STATE_GET_INFO };
     gi.action = a; gi.subactionPath = sub;
+    
     if (XR_SUCCEEDED(xrGetActionStateBoolean(xrSession_, &gi, &st))) {
         dst = (st.isActive && st.currentState);
 
@@ -1170,19 +1177,25 @@ bool OpenXRController::ReadVec2(XrAction a, XrPath sub, XrVector2f& dst) const {
 }
 
 bool OpenXRController::Locate(XrSpace space, XrPosef& dst, bool& has, XrTime t) const {
+
     if (space == XR_NULL_HANDLE) { has = false; return false; }
+
     XrSpaceLocation loc{ XR_TYPE_SPACE_LOCATION };
     xrLocateSpace(space, xrAppSpace_, t, &loc);
+    
     const XrSpaceLocationFlags req =
         XR_SPACE_LOCATION_ORIENTATION_VALID_BIT | XR_SPACE_LOCATION_POSITION_VALID_BIT;
+    
     has = ((loc.locationFlags & req) == req);
     if (has) dst = loc.pose;
+
     return has;
 }
 
 // OpenXR(RH)のPoseをDirectX(LH)行列に変換
 // M_lh = FlipZ * M_rh * FlipZ （FlipZ=diag(1,1,-1,1)）
 DirectX::XMMATRIX OpenXRController::PoseToLHMatrix(const XrPosef& pose) {
+
     using namespace DirectX;
     const XMVECTOR q = XMVectorSet(pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w);
     const XMVECTOR t = XMVectorSet(pose.position.x, pose.position.y, pose.position.z, 1.0f);
@@ -1193,15 +1206,18 @@ DirectX::XMMATRIX OpenXRController::PoseToLHMatrix(const XrPosef& pose) {
 
     static const XMMATRIX FlipZ = XMMatrixScaling(1.0f, 1.0f, -1.0f);
     XMMATRIX M_lh = FlipZ * M_rh * FlipZ;
+
     return M_lh;
 }
 
 std::string OpenXRController::GetCurrentInteractionProfilePath(bool leftHand) const {
+
     if (xrSession_ == XR_NULL_HANDLE) return {};
     XrPath top = StrToPath(xrInstance_, leftHand ? "/user/hand/left" : "/user/hand/right");
     XrInteractionProfileState st{ XR_TYPE_INTERACTION_PROFILE_STATE };
     if (!XR_SUCCEEDED(xrGetCurrentInteractionProfile(xrSession_, top, &st))) return {};
     if (st.interactionProfile == XR_NULL_PATH) return {};
+
     // 文字列化
     char buf[256] = {};
     uint32_t len = 0;
@@ -1228,6 +1244,7 @@ XrPath OpenXRController::StrToPath(XrInstance inst, const char* s) {
 OpenXRController::~OpenXRController() { OnDestroy(); }
 
 void OpenXRController::OnDestroy() {
+
     if (spaceAimL) { xrDestroySpace(spaceAimL); spaceAimL = XR_NULL_HANDLE; }
     if (apaceAimR) { xrDestroySpace(apaceAimR); apaceAimR = XR_NULL_HANDLE; }
     if (spaceGripL) { xrDestroySpace(spaceGripL); spaceGripL = XR_NULL_HANDLE; }

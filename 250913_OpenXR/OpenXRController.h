@@ -15,6 +15,7 @@ using namespace DirectX;
 
 class OpenXRController {
 public:
+
     struct State {
         bool  isActive = false;         // その手の入力が現在有効か
         //bool  select = false;           // 人差し指ボタン 決定（プロファイルによってはtrigger>0相当）
@@ -149,6 +150,7 @@ private:
 
     // Action set / actions
     XrActionSet actionSet_ = XR_NULL_HANDLE;
+
     //XrAction actSelect_ = XR_NULL_HANDLE; // boolean or trigger>0相当
     XrAction actTriggerClick_ = XR_NULL_HANDLE; // boolean
     XrAction actTriggerValue_ = XR_NULL_HANDLE; // float

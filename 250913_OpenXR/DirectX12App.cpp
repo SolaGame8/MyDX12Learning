@@ -1686,9 +1686,11 @@ void DirectX12App::OnUpdate() {
 
     updateCounter += deltaTime;
 
+    if (flg_useVRMode) {
+        //OpenXR 情報更新
+        XR_Manager->UpdateSessionState();
 
-    //OpenXR 情報更新
-    XR_Manager->UpdateSessionState();
+    }
 
 
 
