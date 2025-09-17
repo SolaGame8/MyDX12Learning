@@ -1,9 +1,9 @@
 
+![img](screenshots/runtime_quest.jpg)
+
 
 ## 使い方
 
-- list
-- list2
 
 OpenXRManager* XR_Manager;
 
