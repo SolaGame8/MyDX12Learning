@@ -1,4 +1,7 @@
 
+# ＊このREADMEは作成中です！
+
+
 ![img](screenshots/runtime_quest.jpg)
 
 # OpenXRManager (DX12) — README
