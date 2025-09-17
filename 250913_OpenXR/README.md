@@ -1,8 +1,6 @@
 
 
-# 使い方
 ## 使い方
-### 使い方
 
 
 
@@ -10,19 +8,19 @@ OpenXRManager* XR_Manager;
 
 
 
-＜初期化＞
+### ＜初期化＞
         XR_Manager = new OpenXRManager();
 
         XR_Manager->Initialize(dx12Device.Get(), commandQueue.Get());
 
 
-＜毎フレーム　＊必須＞
+### ＜毎フレーム　＊必須＞
 
         
         XR_Manager->UpdateSessionState();//OpenXR の情報更新
 
 
-＜コントローラー情報取得＞
+### ＜コントローラー情報取得＞
 
 
 	if (XR_Manager->controllersReady) {
@@ -131,7 +129,7 @@ OpenXRManager* XR_Manager;
 
 
 
-＜コントローラー振動＞
+### ＜コントローラー振動＞
 
 
 	XR_Manager->controller.ApplyHaptics(true, 0.5f, 0.5f, 0.0f); //bool左手, 強さ、秒数、周波数（0.0でランタイム任せにできる）
@@ -140,14 +138,14 @@ OpenXRManager* XR_Manager;
 
 
 
-＜ヘッドマウント情報＞
+### ＜ヘッドマウント情報＞
 
 int viewNum = XR_Manager->xr_viewCount;	//ビューの数（両目なので = 2）
 
 
 
 
-＜描画の手順＞
+### ＜描画の手順＞
 
 	XrTime predictedDisplayTime;    //描画予定時間
 
@@ -175,7 +173,7 @@ int viewNum = XR_Manager->xr_viewCount;	//ビューの数（両目なので = 2�
         XR_Manager->GetSwapchainDrawTarget(commandList.Get(), viewIdx, tgt);//VRのスワップチェーンの描画先を取得
 
 
-	//DX12の描画の設定
+	### ＜DX12の描画の設定＞
         
         commandList->ClearRenderTargetView(tgt.rtv, clearColor, 0, nullptr);// レンダーターゲットをクリア
 
