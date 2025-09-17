@@ -6,26 +6,31 @@
 #include <chrono>
 #include <thread>
 
-XMINT2 OpenXRManager::recommendedResolution = { 1024, 1024 };
-XMINT2 OpenXRManager::recommendedScaledResolution = { 1024, 1024 };
+XMINT2 OpenXRManager::recommendedResolution = { 1024, 1024 };           //ヘッドマウントがおすすめする解像度
+XMINT2 OpenXRManager::recommendedScaledResolution = { 1024, 1024 };     //0.8倍に縮小して描画しています（そのままでも普通の速度出そうです
 
 uint32_t OpenXRManager::xr_viewCount = 0; //ビューの数。両目 = 2 になるはず
 
-OpenXRManager::VrSupport OpenXRManager::ProbeSupportDX12() {
+OpenXRManager::VrSupport OpenXRManager::CheckVRSupport() {
 
 
     //VR機器の接続状況をチェックする
 
+    //SteamVRがうまくいかなくて、現在でバック出力多めです
+
+
     //ランタイムと拡張の列挙
-    OutputDebugStringA("ProbeSupportDX12\n");
+    OutputDebugStringA("CheckVRSupport\n");
 
     //拡張機能の 数のみ を取得
     uint32_t extCount = 0;
     XrResult r = xrEnumerateInstanceExtensionProperties(nullptr, 0, &extCount, nullptr);
     if (!XR_SUCCEEDED(r) || extCount == 0) {
-        OutputDebugStringA("[ProbeXR] Runtime unavailable (enumerate failed).\n");
+        OutputDebugStringA("[CheckVRSupport] Runtime unavailable (enumerate failed).\n");
         return VrSupport::RuntimeUnavailable;
     }
+
+    OutputDebugStringA("[CheckVRSupport] done xrEnumerateInstanceExtensionProperties\n");
 
 
     std::vector<XrExtensionProperties> exts;
@@ -39,11 +44,11 @@ OpenXRManager::VrSupport OpenXRManager::ProbeSupportDX12() {
     //拡張機能の列挙データを取得
     r = xrEnumerateInstanceExtensionProperties(nullptr, extCount, &extCount, exts.data());
     if (!XR_SUCCEEDED(r)) {
-        OutputDebugStringA("[ProbeXR] enumerate extensions failed.\n");
+        OutputDebugStringA("[CheckVRSupport] enumerate extensions failed.\n");
         return VrSupport::RuntimeUnavailable;
     }
 
-
+    OutputDebugStringA("[CheckVRSupport] done xrEnumerateInstanceExtensionProperties\n");
 
     //DX12の機能拡張が使えるか確認
 
@@ -56,10 +61,12 @@ OpenXRManager::VrSupport OpenXRManager::ProbeSupportDX12() {
     }
 
     if (!found) {
-        OutputDebugStringA("[ProbeXR] XR_KHR_D3D12_enable not supported.\n");
+        OutputDebugStringA("[CheckVRSupport] XR_KHR_D3D12_enable not supported.\n");
         return VrSupport::RuntimeNoD3D12;
     }
 
+
+    OutputDebugStringA("[CheckVRSupport] found XR_KHR_D3D12_enable\n");
 
     // 最小インスタンスを作ってみて、接続状況を確認
 
@@ -70,26 +77,62 @@ OpenXRManager::VrSupport OpenXRManager::ProbeSupportDX12() {
         appInfo.applicationVersion = 1;
         strncpy_s(appInfo.engineName, "Probe", XR_MAX_ENGINE_NAME_SIZE - 1);
         appInfo.engineVersion = 1;
-        appInfo.apiVersion = XR_CURRENT_API_VERSION;
+        
+        
+        //appInfo.apiVersion = XR_CURRENT_API_VERSION;  //最新バージョンだと、Steam VRで落ちる 1.0.x じゃないと落ちる
+        //appInfo.apiVersion = XR_MAKE_VERSION(1, 0, 0);   // ← 固定で 1.0.0 に（新しいランタイムを選択されると、SteamVRが動かないらしい
+    
+        appInfo.apiVersion = XR_MAKE_VERSION(1, 0, 34);
     }
+
+
+    /*
+    //デバッグ用
+    const char* extensions[] = {
+        XR_KHR_D3D12_ENABLE_EXTENSION_NAME      //"XR_KHR_D3D12_enable"
+    };
+    */
+
+
 
     XrInstanceCreateInfo ci = {};   //インスタンス生成情報
 
     {
         ci.type = XR_TYPE_INSTANCE_CREATE_INFO;  // 必須フィールドを設定
+        ci.next = nullptr;
         ci.applicationInfo = appInfo;
+
+        ci.enabledApiLayerCount = 0;
 
         ci.enabledExtensionCount = 0;           //拡張機能（D3D12_enable）を指定しないで、不要な負荷を避ける
         ci.enabledExtensionNames = nullptr;
+
+        //ci.enabledExtensionCount = (uint32_t)(sizeof(extensions) / sizeof(extensions[0]));
+        //ci.enabledExtensionNames = extensions;
+
+
     }
+
+
+    
+
+
+
+    OutputDebugStringA("[CheckVRSupport] before xrCreateInstance\n");
 
     //インスタンスの作成
 
     XrInstance inst = XR_NULL_HANDLE;
+
+
+
     r = xrCreateInstance(&ci, &inst);
 
+    OutputDebugStringA("[CheckVRSupport] done xrCreateInstance\n");
+
+
     if (!XR_SUCCEEDED(r) || inst == XR_NULL_HANDLE) {
-        std::ostringstream oss; oss << "[ProbeXR] xrCreateInstance failed: " << r << "\n";
+        std::ostringstream oss; oss << "[CheckVRSupport] xrCreateInstance failed: " << r << "\n";
         OutputDebugStringA(oss.str().c_str());
         return VrSupport::InstanceFailed;
     }
@@ -106,6 +149,9 @@ OpenXRManager::VrSupport OpenXRManager::ProbeSupportDX12() {
     
     r = xrGetSystem(inst, &si, &systemId);      //システムID情報取得
 
+
+    OutputDebugStringA("[CheckVRSupport] done xrGetSystem\n");
+
     VrSupport result = VrSupport::NoHmd;
 
     if (XR_SUCCEEDED(r)) {  //システムIDが取得出来ていたら
@@ -116,6 +162,9 @@ OpenXRManager::VrSupport OpenXRManager::ProbeSupportDX12() {
         XrSystemProperties props = {};
         props.type = XR_TYPE_SYSTEM_PROPERTIES;
         XrResult r = xrGetSystemProperties(inst, systemId, &props);
+
+
+        OutputDebugStringA("[CheckVRSupport] done xrGetSystemProperties\n");
 
         if (XR_SUCCEEDED(r)){
 
@@ -136,6 +185,8 @@ OpenXRManager::VrSupport OpenXRManager::ProbeSupportDX12() {
             xrEnumerateViewConfigurationViews(inst, systemId, XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO, 0, &xr_viewCount, nullptr);
 
 
+            OutputDebugStringA("[ProbeXR] done xrEnumerateViewConfigurationViews\n");
+
             std::vector<XrViewConfigurationView> views;
             views.resize(xr_viewCount);
 
@@ -147,6 +198,8 @@ OpenXRManager::VrSupport OpenXRManager::ProbeSupportDX12() {
 
             xrEnumerateViewConfigurationViews(inst, systemId, XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO, xr_viewCount, &xr_viewCount, views.data());
 
+
+            OutputDebugStringA("[ProbeXR] done xrEnumerateViewConfigurationViews\n");
 
             //スケールダウンした解像度を計算
 
@@ -184,8 +237,6 @@ OpenXRManager::VrSupport OpenXRManager::ProbeSupportDX12() {
                     views[i].recommendedImageRectHeight,
                     scaleDownRate,
                     w, h);
-                    //views[i].maxImageRectWidth,             //maxは swapchain の限界値
-                    //views[i].maxImageRectHeight);
 
                 OutputDebugStringA(buf);
 
@@ -214,6 +265,10 @@ OpenXRManager::VrSupport OpenXRManager::ProbeSupportDX12() {
     }
 
     xrDestroyInstance(inst);
+
+    OutputDebugStringA("[CheckVRSupport] done xrDestroyInstance\n");
+    OutputDebugStringA("[CheckVRSupport] done ProbeXR\n");
+
     return result;
 }
 
@@ -229,17 +284,12 @@ bool OpenXRManager::Initialize(ID3D12Device* d3d12Device, ID3D12CommandQueue* co
         return false;
     }
 
-    //d3d12Device_ = d3d12Device;
-
 
     if (!CreateInstance()) return false;                            //インスタンス作成
     if (!GetSystemId())    return false;                            //システムIDの取得
     if (!CheckGraphicsRequirements(d3d12Device)) return false;      //VR機器の要求スペックを満たしているか確認
 
     if (!CreateSession(d3d12Device, commQueue)) return false;        //セッション作成
-
-
-
 
     if (!CreateReferenceSpace(true)) return false;                  //スペースの作成（bool ステージ優先にするかどうか）
 
@@ -258,9 +308,6 @@ bool OpenXRManager::Initialize(ID3D12Device* d3d12Device, ID3D12CommandQueue* co
 
 
 
-
-
-
     //スワップチェーン
     if (!CreateSwapchains(
         d3d12Device, xr_viewCount,                   //2
@@ -275,10 +322,7 @@ bool OpenXRManager::Initialize(ID3D12Device* d3d12Device, ID3D12CommandQueue* co
 
 
     //コントローラー初期化
-
     (void)InitControllers();
-
-    //InitSimpleControllerTest();
 
 
 
@@ -287,9 +331,12 @@ bool OpenXRManager::Initialize(ID3D12Device* d3d12Device, ID3D12CommandQueue* co
     return true;
 }
 
-XrInstance OpenXRManager::GetInstance() const { return xr_instance; }
-XrSession  OpenXRManager::GetSession()  const { return xr_session; }
-XrSystemId OpenXRManager::GetSystemId() const { return xr_systemId; }
+
+
+
+
+
+
 
 bool OpenXRManager::CreateInstance() {
 
@@ -306,10 +353,11 @@ bool OpenXRManager::CreateInstance() {
     {
         strncpy_s(appInfo.applicationName, "My OpenXR App", XR_MAX_APPLICATION_NAME_SIZE - 1);  //アプリケーション名
         appInfo.applicationVersion = (1u << 16) | (0u << 8) | 0u; // 1.0.0 など任意
+
         strncpy_s(appInfo.engineName, "DX12 FromScratch", XR_MAX_ENGINE_NAME_SIZE - 1);         //エンジン名（DX12 スクラッチ
-        //appInfo.engineVersion = 1;
         appInfo.engineVersion = (1u << 16) | (0u << 8) | 0u; // 1.0.0 など任意
-        appInfo.apiVersion = XR_CURRENT_API_VERSION;
+
+        appInfo.apiVersion = XR_MAKE_VERSION(1, 0, 0);   // ← 固定で 1.0.0 に   //現状、SteamVRが、1.0.xじゃないと対応していない
     }
 
 
@@ -320,6 +368,14 @@ bool OpenXRManager::CreateInstance() {
         ci.enabledExtensionCount = (uint32_t)(sizeof(extensions) / sizeof(extensions[0]));
         ci.enabledExtensionNames = extensions;
     }
+
+    /*
+    if (!WaitForSteamVRNamespace(500, 10)) {
+        OutputDebugStringA("[XR] SteamVR_Namespace not ready.\n");
+        // ここでリトライポリシーに切り替えるか、ユーザーに再起動を促す
+    }
+    */
+
 
     XrResult r = xrCreateInstance(&ci, &xr_instance);
     
@@ -360,74 +416,14 @@ bool OpenXRManager::GetSystemId() {
 }
 
 
-/*
-bool OpenXRManager::loadD3D12ReqFunc() {
 
-    //関数のアドレスを取得
-
-    XrResult r = xrGetInstanceProcAddr(
-        xr_instance,
-        "xrGetD3D12GraphicsRequirementsKHR",
-        reinterpret_cast<PFN_xrVoidFunction*>(&ptrfunc_D3D12Requirements)
-    );
-
-    if (!XR_SUCCEEDED(r) || !ptrfunc_D3D12Requirements) {
-        std::ostringstream oss;
-        oss << "xrGetInstanceProcAddr(xrGetD3D12GraphicsRequirementsKHR) failed: " << r << "\n";
-        OutputDebugStringA(oss.str().c_str());
-        return false;
-    }
-    return true;
-}
-
-bool OpenXRManager::checkGraphicsRequirements(ID3D12Device* d3d12Device) {
-
-    //XrGraphicsRequirementsD3D12KHR req{ XR_TYPE_GRAPHICS_REQUIREMENTS_D3D12_KHR };
-    XrGraphicsRequirementsD3D12KHR req = {};         // 全フィールドをゼロ初期化
-    req.type = XR_TYPE_GRAPHICS_REQUIREMENTS_D3D12_KHR; // 構造体の種類を指定
-    req.next = nullptr;                              // 拡張を使わないので null
-
-    XrResult r = ptrfunc_D3D12Requirements(xr_instance, xr_systemId, &req);
-    if (!XR_SUCCEEDED(r)) {
-        std::ostringstream oss;
-        oss << "xrGetD3D12GraphicsRequirementsKHR failed: " << r << "\n";
-        OutputDebugStringA(oss.str().c_str());
-        return false;
-    }
-
-    LUID deviceLuid = d3d12Device->GetAdapterLuid();
-    if (std::memcmp(&deviceLuid, &req.adapterLuid, sizeof(LUID)) != 0) {
-        OutputDebugStringA("Adapter LUID mismatch.\n");
-        return false;
-    }
-
-    D3D12_FEATURE_DATA_FEATURE_LEVELS fls{};
-    static const D3D_FEATURE_LEVEL levels[] = {
-        D3D_FEATURE_LEVEL_12_2,
-        D3D_FEATURE_LEVEL_12_1,
-        D3D_FEATURE_LEVEL_12_0,
-        D3D_FEATURE_LEVEL_11_1,
-        D3D_FEATURE_LEVEL_11_0,
-    };
-    fls.NumFeatureLevels = (UINT)(sizeof(levels) / sizeof(levels[0]));
-    fls.pFeatureLevelsRequested = levels;
-    if (FAILED(d3d12Device->CheckFeatureSupport(D3D12_FEATURE_FEATURE_LEVELS, &fls, sizeof(fls)))) {
-        OutputDebugStringA("CheckFeatureSupport failed.\n");
-        return false;
-    }
-
-    if (fls.MaxSupportedFeatureLevel < (D3D_FEATURE_LEVEL)req.minFeatureLevel) {
-        OutputDebugStringA("Feature level too low.\n");
-        return false;
-    }
-    return true;
-}
-*/
 
 
 bool OpenXRManager::CheckGraphicsRequirements(ID3D12Device* d3d12Device) {
 
+    
     if (!d3d12Device) return false;
+
 
     // VR機器側のD3D12ランタイム関数のポインタを取得（この関数から要求を取得する
     PFN_xrGetD3D12GraphicsRequirementsKHR ptrfunc_D3D12Requirements = nullptr;
@@ -647,13 +643,13 @@ bool OpenXRManager::CreateSwapchains(
     for (auto sc : xr_viewChainsDepth) if (sc != XR_NULL_HANDLE) xrDestroySwapchain(sc);
     xr_viewChainsColor.clear();
     xr_viewChainsDepth.clear();
-    xr_colorImagesPerView.clear();
-    xr_depthImagesPerView.clear();
+    xr_colorSwapchainImage.clear();
+    xr_depthSwapchainImage.clear();
 
     xr_viewChainsColor.resize(viewCount, XR_NULL_HANDLE);
     xr_viewChainsDepth.resize(viewCount, XR_NULL_HANDLE);
-    xr_colorImagesPerView.resize(viewCount);
-    xr_depthImagesPerView.resize(viewCount);
+    xr_colorSwapchainImage.resize(viewCount);
+    xr_depthSwapchainImage.resize(viewCount);
 
     eyeActiveColorIndex.resize(viewCount);
     eyeActiveDepthIndex.resize(viewCount);
@@ -688,16 +684,16 @@ bool OpenXRManager::CreateSwapchains(
             uint32_t imgCount = 0;
             xrEnumerateSwapchainImages(xr_viewChainsColor[i], 0, &imgCount, nullptr);
 
-            xr_colorImagesPerView[i].resize(imgCount);
+            xr_colorSwapchainImage[i].resize(imgCount);
             for (uint32_t k = 0; k < imgCount; ++k) {
-                xr_colorImagesPerView[i][k] = {};
-                xr_colorImagesPerView[i][k].type = XR_TYPE_SWAPCHAIN_IMAGE_D3D12_KHR;
-                xr_colorImagesPerView[i][k].next = nullptr;
+                xr_colorSwapchainImage[i][k] = {};
+                xr_colorSwapchainImage[i][k].type = XR_TYPE_SWAPCHAIN_IMAGE_D3D12_KHR;
+                xr_colorSwapchainImage[i][k].next = nullptr;
             }
 
             r = xrEnumerateSwapchainImages(
                 xr_viewChainsColor[i], imgCount, &imgCount,
-                reinterpret_cast<XrSwapchainImageBaseHeader*>(xr_colorImagesPerView[i].data()));
+                reinterpret_cast<XrSwapchainImageBaseHeader*>(xr_colorSwapchainImage[i].data()));
             if (!XR_SUCCEEDED(r)) {
                 std::ostringstream oss; oss << "xrEnumerateSwapchainImages(Color) failed for view " << i << ": " << r << "\n";
                 OutputDebugStringA(oss.str().c_str());
@@ -733,16 +729,16 @@ bool OpenXRManager::CreateSwapchains(
             uint32_t imgCount = 0;
             xrEnumerateSwapchainImages(xr_viewChainsDepth[i], 0, &imgCount, nullptr);
 
-            xr_depthImagesPerView[i].resize(imgCount);
+            xr_depthSwapchainImage[i].resize(imgCount);
             for (uint32_t k = 0; k < imgCount; ++k) {
-                xr_depthImagesPerView[i][k] = {};
-                xr_depthImagesPerView[i][k].type = XR_TYPE_SWAPCHAIN_IMAGE_D3D12_KHR;
-                xr_depthImagesPerView[i][k].next = nullptr;
+                xr_depthSwapchainImage[i][k] = {};
+                xr_depthSwapchainImage[i][k].type = XR_TYPE_SWAPCHAIN_IMAGE_D3D12_KHR;
+                xr_depthSwapchainImage[i][k].next = nullptr;
             }
 
             r = xrEnumerateSwapchainImages(
                 xr_viewChainsDepth[i], imgCount, &imgCount,
-                reinterpret_cast<XrSwapchainImageBaseHeader*>(xr_depthImagesPerView[i].data()));
+                reinterpret_cast<XrSwapchainImageBaseHeader*>(xr_depthSwapchainImage[i].data()));
 
             if (!XR_SUCCEEDED(r)) {
                 std::ostringstream oss; oss << "xrEnumerateSwapchainImages(Depth) failed for view " << i << ": " << r << "\n";
@@ -766,8 +762,8 @@ bool OpenXRManager::CreateSwapchains(
         dsvHandles_.resize(viewCount);
 
         for (uint32_t i = 0; i < viewCount; ++i) {
-            rtvHandles_[i].resize(xr_colorImagesPerView[i].size());
-            dsvHandles_[i].resize(xr_depthImagesPerView[i].size());
+            rtvHandles_[i].resize(xr_colorSwapchainImage[i].size());
+            dsvHandles_[i].resize(xr_depthSwapchainImage[i].size());
         }
 
         OutputDebugStringA(("viewCount " + std::to_string(viewCount) + "\n").c_str());
@@ -779,7 +775,7 @@ bool OpenXRManager::CreateSwapchains(
 
             // --- Color chain 作成＆列挙（既存） ---
             {
-                uint32_t imgCount = xr_colorImagesPerView[i].size();
+                uint32_t imgCount = xr_colorSwapchainImage[i].size();
                 if (imgCount == 0) {
                     OutputDebugStringA("[ERROR] RTV imgCount==0\n"); return false;
                 }
@@ -809,7 +805,7 @@ bool OpenXRManager::CreateSwapchains(
                 rtvDesc.Texture2D.PlaneSlice = 0;
 
                 for (uint32_t k = 0; k < imgCount; ++k) {
-                    if (!xr_colorImagesPerView[i][k].texture) { OutputDebugStringA("[ERROR] RTV texture null\n"); return false; }
+                    if (!xr_colorSwapchainImage[i][k].texture) { OutputDebugStringA("[ERROR] RTV texture null\n"); return false; }
 
 
                     D3D12_CPU_DESCRIPTOR_HANDLE h{ cpuStart.ptr + SIZE_T(k) * inc };
@@ -817,7 +813,7 @@ bool OpenXRManager::CreateSwapchains(
 
                     // RTV を作成（descは nullptr でOK、フォーマットは swapchain 作成時と整合）
                     d3d12Device->CreateRenderTargetView(
-                        xr_colorImagesPerView[i][k].texture, &rtvDesc, h);
+                        xr_colorSwapchainImage[i][k].texture, &rtvDesc, h);
 
                     if (rtvHandles_[i][k].ptr == 0) { OutputDebugStringA("[ERROR] RTV handle ptr==0\n"); return false; }
                 }
@@ -826,7 +822,7 @@ bool OpenXRManager::CreateSwapchains(
             // --- Depth chain 作成＆列挙（既存） ---
             {
 
-                uint32_t imgCount = xr_depthImagesPerView[i].size();
+                uint32_t imgCount = xr_depthSwapchainImage[i].size();
                 if (imgCount == 0) {
                     OutputDebugStringA("[ERROR] DSV imgCount==0\n"); return false;
                 }
@@ -855,14 +851,14 @@ bool OpenXRManager::CreateSwapchains(
                 dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
 
                 for (uint32_t k = 0; k < imgCount; ++k) {
-                    if (!xr_depthImagesPerView[i][k].texture) { OutputDebugStringA("[ERROR] DSV texture null\n"); return false; }
+                    if (!xr_depthSwapchainImage[i][k].texture) { OutputDebugStringA("[ERROR] DSV texture null\n"); return false; }
 
 
                     D3D12_CPU_DESCRIPTOR_HANDLE h{ cpuStart.ptr + SIZE_T(k) * inc };
                     dsvHandles_[i][k] = h;
 
                     d3d12Device->CreateDepthStencilView(
-                        xr_depthImagesPerView[i][k].texture, &dsvDesc, h);
+                        xr_depthSwapchainImage[i][k].texture, &dsvDesc, h);
 
                     if (dsvHandles_[i][k].ptr == 0) { OutputDebugStringA("[ERROR] DSV handle ptr==0\n"); return false; }
                 }
@@ -896,6 +892,8 @@ bool OpenXRManager::InitControllers() {
         controllersReady = false;
         return false;
     }
+
+    //コントローラーが使える状態になったかどうか
     controllersReady = controller.Initialize(xr_instance, xr_session, xr_appSpace);
 
     if (controllersReady) {
@@ -1015,7 +1013,6 @@ bool OpenXRManager::BeginFrame(XrTime& predictedDisplayTime) {
         controller.Sync(xr_session, predictedDisplayTime);
     }
 
-    //PollSimpleController();
 
 
 
@@ -1045,33 +1042,10 @@ XMMATRIX OpenXRManager::CreateCameraViewMatrix(const XrPosef& pose) {
     // LHのビュー行列を生成
     return XMMatrixLookToLH(posLH, fwdLH, upLH);
 
-    /*
-    // OpenXRの姿勢
-    XMVECTOR q = XMVectorSet(pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w);
-    XMVECTOR pos = XMVectorSet(pose.position.x, pose.position.y, pose.position.z, 0.0f);
-
-    // カメラのローカル前方(+Z)と上方(+Y)を回転で世界に持ち上げる
-    XMVECTOR fwd = XMVector3Rotate(XMVectorSet(0, 0, 1, 0), q);
-    XMVECTOR up = XMVector3Rotate(XMVectorSet(0, 1, 0, 0), q);
-
-    return XMMatrixLookToLH(pos, fwd, up);
-    */
 
 }
 
-/*
-DirectX::XMMATRIX OpenXRManager::XMMatrixFromXrPoseLH(const XrPosef& pose) {
 
-    //回転と移動
-
-    XMVECTOR q = XMVectorSet(pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w);
-    XMVECTOR t = XMVectorSet(pose.position.x, pose.position.y, pose.position.z, 1.0f);
-    XMMATRIX R = XMMatrixRotationQuaternion(q);
-    XMMATRIX T = XMMatrixTranslationFromVector(t);
-
-    return R * T;
-}
-*/
 
 DirectX::XMMATRIX OpenXRManager::CreateProjectionMatrix(const XrFovf& fov, float nearZ, float farZ) {
 
@@ -1130,217 +1104,10 @@ bool OpenXRManager::GetEyeMatrix(XrTime predictedDisplayTime, float nearZ, float
 }
 
 
-/*
-bool OpenXRManager::GetStereoViews(XrTime predictedDisplayTime, EyeViews& out) {
-
-
-    //VRで両目のカメラ位置・向きを求める
-
-    out.views.resize(xr_viewCount);
-    for (uint32_t i = 0; i < xr_viewCount; ++i) {
-        out.views[i] = {};
-        out.views[i].type = XR_TYPE_VIEW;
-    }
-
-    out.viewState = {};
-    out.viewState.type = XR_TYPE_VIEW_STATE;
-
-    XrViewLocateInfo li = {};
-    li.type = XR_TYPE_VIEW_LOCATE_INFO;
-    li.viewConfigurationType = XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO;
-    li.displayTime = predictedDisplayTime;
-    li.space = xr_appSpace;  // 参照スペース
-
-    uint32_t outCount = xr_viewCount;
-    
-    XrResult r = xrLocateViews(xr_session, &li, &out.viewState, outCount, &outCount, out.views.data());
-
-    if (!XR_SUCCEEDED(r) || outCount != xr_viewCount) {
-        OutputDebugStringA("xrLocateViews failed.\n");
-        return false;
-    }
-
-    return true;
-}
-*/
 
 
 
-/*
-bool OpenXRManager::BeginEyeDirect(
-    ID3D12GraphicsCommandList* cmd,
-    uint32_t eyeIndex,
-    EyeDirectTarget& out) {
-
-
-    if (eyeIndex >= xr_viewCount) return false;
-
-    // Acquire/Wait (Color)
-    XrSwapchainImageAcquireInfo acqInfo{ XR_TYPE_SWAPCHAIN_IMAGE_ACQUIRE_INFO };
-    uint32_t colorIdx = 0;
-    XrResult r = xrAcquireSwapchainImage(xr_viewChainsColor[eyeIndex], &acqInfo, &colorIdx);
-    if (!XR_SUCCEEDED(r)) return false;
-
-    XrSwapchainImageWaitInfo waitInfo{ XR_TYPE_SWAPCHAIN_IMAGE_WAIT_INFO };
-    waitInfo.timeout = XR_INFINITE_DURATION;
-    r = xrWaitSwapchainImage(xr_viewChainsColor[eyeIndex], &waitInfo);
-    if (!XR_SUCCEEDED(r)) return false;
-
-    // Acquire/Wait (Depth)
-    uint32_t depthIdx = 0;
-    r = xrAcquireSwapchainImage(xr_viewChainsDepth[eyeIndex], &acqInfo, &depthIdx);
-    if (!XR_SUCCEEDED(r)) return false;
-
-    r = xrWaitSwapchainImage(xr_viewChainsDepth[eyeIndex], &waitInfo);
-    if (!XR_SUCCEEDED(r)) return false;
-
-    // 列挙済みのD3D12テクスチャ
-    ID3D12Resource* colorTex = xr_colorImagesPerView[eyeIndex][colorIdx].texture;  // 色
-    ID3D12Resource* depthTex = xr_depthImagesPerView[eyeIndex][depthIdx].texture;  // 深度
-
-    // ★ d3dx12 ヘルパーでバリア（COMMON -> RT/DS）
-    {
-        auto b0 = CD3DX12_RESOURCE_BARRIER::Transition(
-            colorTex, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_RENDER_TARGET);
-        auto b1 = CD3DX12_RESOURCE_BARRIER::Transition(
-            depthTex, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_DEPTH_WRITE);
-        CD3DX12_RESOURCE_BARRIER barriers[] = { b0, b1 };
-        cmd->ResourceBarrier(_countof(barriers), barriers);
-    }
-
-    // このフレームで使う index を保存（EndEyeDirect で使う）
-    eyeActiveColorIndex[eyeIndex] = colorIdx;
-    eyeActiveDepthIndex[eyeIndex] = depthIdx;
-
-    
-    // RTV/DSV を返す
-    out.rtv = rtvHandles_[eyeIndex][colorIdx];
-    out.dsv = dsvHandles_[eyeIndex][depthIdx];
-    out.size = recommendedScaledResolution;  // ビューポート/シザー用サイズ :contentReference[oaicite:2]{index=2}
-    
-    
-    return true;
-}
-*/
-
-/*
-bool OpenXRManager::BeginEyeDirect(
-    ID3D12GraphicsCommandList* cmd,
-    uint32_t eyeIndex,
-    EyeDirectTarget& out) {
-    // out を必ず初期化
-    out.rtv = D3D12_CPU_DESCRIPTOR_HANDLE{ 0 };
-    out.dsv = D3D12_CPU_DESCRIPTOR_HANDLE{ 0 };
-    out.size = recommendedScaledResolution;
-
-    if (!cmd) {
-        OutputDebugStringA("BeginEyeDirect: cmd is null\n");
-        return false;
-    }
-    if (eyeIndex >= xr_viewCount) {
-        OutputDebugStringA("BeginEyeDirect: eyeIndex out of range\n");
-        return false;
-    }
-
-    // Acquire color
-    XrSwapchainImageAcquireInfo acqInfo{ XR_TYPE_SWAPCHAIN_IMAGE_ACQUIRE_INFO };
-    uint32_t colorIdx = 0;
-    XrResult r = xrAcquireSwapchainImage(xr_viewChainsColor[eyeIndex], &acqInfo, &colorIdx);
-    if (!XR_SUCCEEDED(r)) {
-        OutputDebugStringA("BeginEyeDirect: xrAcquireSwapchainImage color failed\n");
-        return false;
-    }
-    XrSwapchainImageWaitInfo waitInfo{ XR_TYPE_SWAPCHAIN_IMAGE_WAIT_INFO };
-    waitInfo.timeout = XR_INFINITE_DURATION;
-    r = xrWaitSwapchainImage(xr_viewChainsColor[eyeIndex], &waitInfo);
-    if (!XR_SUCCEEDED(r)) {
-        OutputDebugStringA("BeginEyeDirect: xrWaitSwapchainImage color failed\n");
-        return false;
-    }
-
-    // Acquire depth
-    uint32_t depthIdx = 0;
-    r = xrAcquireSwapchainImage(xr_viewChainsDepth[eyeIndex], &acqInfo, &depthIdx);
-    if (!XR_SUCCEEDED(r)) {
-        OutputDebugStringA("BeginEyeDirect: xrAcquireSwapchainImage depth failed\n");
-        return false;
-    }
-    r = xrWaitSwapchainImage(xr_viewChainsDepth[eyeIndex], &waitInfo);
-    if (!XR_SUCCEEDED(r)) {
-        OutputDebugStringA("BeginEyeDirect: xrWaitSwapchainImage depth failed\n");
-        return false;
-    }
-
-    // テクスチャチェック
-    ID3D12Resource* colorTex = xr_colorImagesPerView[eyeIndex][colorIdx].texture;
-    ID3D12Resource* depthTex = xr_depthImagesPerView[eyeIndex][depthIdx].texture;
-    if (!colorTex) {
-        OutputDebugStringA("BeginEyeDirect: colorTex is null\n");
-        return false;
-    }
-    if (!depthTex) {
-        OutputDebugStringA("BeginEyeDirect: depthTex is null\n");
-        return false;
-    }
-
-    // ハンドル存在確認
-    if (eyeIndex >= rtvHandles_.size() || eyeIndex >= dsvHandles_.size()) {
-        OutputDebugStringA("BeginEyeDirect: handle array not sized\n");
-        return false;
-    }
-    if (colorIdx >= rtvHandles_[eyeIndex].size()) {
-        OutputDebugStringA("BeginEyeDirect: rtvHandles index out of range\n");
-        return false;
-    }
-    if (depthIdx >= dsvHandles_[eyeIndex].size()) {
-        OutputDebugStringA("BeginEyeDirect: dsvHandles index out of range\n");
-        return false;
-    }
-
-    if (rtvHandles_[eyeIndex][colorIdx].ptr == 0) {
-        OutputDebugStringA("BeginEyeDirect: RTV handle is null\n");
-        return false;
-    }
-    if (dsvHandles_[eyeIndex][depthIdx].ptr == 0) {
-        OutputDebugStringA("BeginEyeDirect: DSV handle is null\n");
-    }
-
-    // バリア設定
-    {
-        CD3DX12_RESOURCE_BARRIER barriers[] = {
-            CD3DX12_RESOURCE_BARRIER::Transition(colorTex, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_RENDER_TARGET),
-            CD3DX12_RESOURCE_BARRIER::Transition(depthTex, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_DEPTH_WRITE),
-        };
-        cmd->ResourceBarrier(_countof(barriers), barriers);
-    }
-
-    // index 保存
-    eyeActiveColorIndex[eyeIndex] = colorIdx;
-    eyeActiveDepthIndex[eyeIndex] = depthIdx;
-
-    // 出力設定
-    out.rtv = rtvHandles_[eyeIndex][colorIdx];
-    out.dsv = dsvHandles_[eyeIndex][depthIdx];
-    out.size = recommendedScaledResolution;
-
-    if (out.rtv.ptr == 0) {
-        OutputDebugStringA("BeginEyeDirect: out.rtv is null\n");
-        return false;
-    }
-    if (out.dsv.ptr == 0) {
-        OutputDebugStringA("BeginEyeDirect: out.dsv is null\n");
-    }
-
-    return true;
-}
-*/
-
-
-
-bool OpenXRManager::BeginEyeDirect(
-    ID3D12GraphicsCommandList* cmd,
-    uint32_t eyeIndex,
-    EyeDirectTarget& out) {
+bool OpenXRManager::GetSwapchainDrawTarget(ID3D12GraphicsCommandList* cmd, uint32_t eyeIndex, EyeDirectTarget& out) {
 
 
     out.rtv = D3D12_CPU_DESCRIPTOR_HANDLE{ 0 };
@@ -1414,8 +1181,8 @@ bool OpenXRManager::BeginEyeDirect(
     }
 
     // リソースとハンドルの検証
-    ID3D12Resource* colorTex = xr_colorImagesPerView[eyeIndex][colorIdx].texture;
-    ID3D12Resource* depthTex = xr_depthImagesPerView[eyeIndex][depthIdx].texture;
+    ID3D12Resource* colorTex = xr_colorSwapchainImage[eyeIndex][colorIdx].texture;
+    ID3D12Resource* depthTex = xr_depthSwapchainImage[eyeIndex][depthIdx].texture;
     if (!colorTex || !depthTex) {
         OutputDebugStringA("BeginEyeDirect: colorTex or depthTex is null\n");
         cleanup_on_fail();
@@ -1458,7 +1225,7 @@ bool OpenXRManager::BeginEyeDirect(
 }
 
 
-bool OpenXRManager::EndEyeDirect(
+bool OpenXRManager::FinishSwapchainDrawTarget(
     ID3D12GraphicsCommandList* cmd,
     uint32_t eyeIndex) {
 
@@ -1468,8 +1235,8 @@ bool OpenXRManager::EndEyeDirect(
     const uint32_t colorIdx = eyeActiveColorIndex[eyeIndex];
     const uint32_t depthIdx = eyeActiveDepthIndex[eyeIndex];
 
-    ID3D12Resource* colorTex = xr_colorImagesPerView[eyeIndex][colorIdx].texture;
-    ID3D12Resource* depthTex = xr_depthImagesPerView[eyeIndex][depthIdx].texture;
+    ID3D12Resource* colorTex = xr_colorSwapchainImage[eyeIndex][colorIdx].texture;
+    ID3D12Resource* depthTex = xr_depthSwapchainImage[eyeIndex][depthIdx].texture;
 
     // ★ d3dx12 ヘルパーでバリア（RT/DS -> COMMON）
     {
@@ -1497,130 +1264,14 @@ bool OpenXRManager::EndEyeDirect(
 
 
 
-bool OpenXRManager::CopyOneViewToSwapchain(
-    ID3D12GraphicsCommandList* cmd,
-    ID3D12Resource* myColorRT, ID3D12Resource* myDepth,
-    XrSwapchain colorChain, std::vector<XrSwapchainImageD3D12KHR>& colorImgs,
-    XrSwapchain depthChain, std::vector<XrSwapchainImageD3D12KHR>& depthImgs) {
-
-
-    // ---- COLOR ----
-
-    
-    //「書き込み先（提出先）の画像インデックスをもらう
-    uint32_t colorIndex = 0;
-    XrSwapchainImageAcquireInfo acq{ XR_TYPE_SWAPCHAIN_IMAGE_ACQUIRE_INFO };
-    if (!XR_SUCCEEDED(xrAcquireSwapchainImage(colorChain, &acq, &colorIndex))) return false;
-
-    //その画像が使える状態になるまで待つ
-    XrSwapchainImageWaitInfo wi{ XR_TYPE_SWAPCHAIN_IMAGE_WAIT_INFO };
-    wi.timeout = XR_INFINITE_DURATION;
-    if (!XR_SUCCEEDED(xrWaitSwapchainImage(colorChain, &wi))) return false;
-
-    ID3D12Resource* dstColor = colorImgs[colorIndex].texture;
-
-    // 事前遷移（まとめて）
-    {
-        CD3DX12_RESOURCE_BARRIER barriers[] = {
-            CD3DX12_RESOURCE_BARRIER::Transition(
-                myColorRT,
-                D3D12_RESOURCE_STATE_RENDER_TARGET,
-                D3D12_RESOURCE_STATE_COPY_SOURCE),
-            CD3DX12_RESOURCE_BARRIER::Transition(
-                dstColor,
-                D3D12_RESOURCE_STATE_COMMON,   // 初期COMMON想定
-                D3D12_RESOURCE_STATE_COPY_DEST),
-        };
-        cmd->ResourceBarrier(_countof(barriers), barriers);
-    }
-
-    // コピー
-    cmd->CopyResource(dstColor, myColorRT);
-
-    // 事後遷移（まとめて）
-    {
-        CD3DX12_RESOURCE_BARRIER barriers[] = {
-            CD3DX12_RESOURCE_BARRIER::Transition(
-                dstColor,
-                D3D12_RESOURCE_STATE_COPY_DEST,
-                D3D12_RESOURCE_STATE_COMMON),  // ランタイム提出前に戻す
-            CD3DX12_RESOURCE_BARRIER::Transition(
-                myColorRT,
-                D3D12_RESOURCE_STATE_COPY_SOURCE,
-                D3D12_RESOURCE_STATE_RENDER_TARGET), // 次フレームに備える
-        };
-        cmd->ResourceBarrier(_countof(barriers), barriers);
-    }
-
-    XrSwapchainImageReleaseInfo ri{ XR_TYPE_SWAPCHAIN_IMAGE_RELEASE_INFO };
-    if (!XR_SUCCEEDED(xrReleaseSwapchainImage(colorChain, &ri))) return false;
-
-
-
-
-    // ---- DEPTH ----
-
-    //「書き込み先（提出先）の画像インデックスをもらう
-    uint32_t depthIndex = 0;
-    acq = { XR_TYPE_SWAPCHAIN_IMAGE_ACQUIRE_INFO };
-    if (!XR_SUCCEEDED(xrAcquireSwapchainImage(depthChain, &acq, &depthIndex))) return false;
-
-    //その画像が使える状態になるまで待つ
-    wi = { XR_TYPE_SWAPCHAIN_IMAGE_WAIT_INFO };
-    wi.timeout = XR_INFINITE_DURATION;
-    if (!XR_SUCCEEDED(xrWaitSwapchainImage(depthChain, &wi))) return false;
-
-    ID3D12Resource* dstDepth = depthImgs[depthIndex].texture;
-
-    {
-        // 事前遷移（まとめて）
-        CD3DX12_RESOURCE_BARRIER barriersBegin[] = {
-            CD3DX12_RESOURCE_BARRIER::Transition(
-                myDepth,
-                D3D12_RESOURCE_STATE_DEPTH_WRITE,
-                D3D12_RESOURCE_STATE_COPY_SOURCE),
-            CD3DX12_RESOURCE_BARRIER::Transition(
-                dstDepth,
-                D3D12_RESOURCE_STATE_COMMON,
-                D3D12_RESOURCE_STATE_COPY_DEST),
-        };
-        cmd->ResourceBarrier(_countof(barriersBegin), barriersBegin);
-
-    }
-
-    // コピー（サイズ/フォーマット一致前提）
-    cmd->CopyResource(dstDepth, myDepth);
-
-    {
-        // 事後遷移（まとめて）
-        CD3DX12_RESOURCE_BARRIER barriersEnd[] = {
-            CD3DX12_RESOURCE_BARRIER::Transition(
-                dstDepth,
-                D3D12_RESOURCE_STATE_COPY_DEST,
-                D3D12_RESOURCE_STATE_COMMON),
-            CD3DX12_RESOURCE_BARRIER::Transition(
-                myDepth,
-                D3D12_RESOURCE_STATE_COPY_SOURCE,
-                D3D12_RESOURCE_STATE_DEPTH_WRITE),
-        };
-        cmd->ResourceBarrier(_countof(barriersEnd), barriersEnd);
-    }
-
-
-    if (!XR_SUCCEEDED(xrReleaseSwapchainImage(depthChain, &ri))) return false;
-
-    return true;
-}
-
-
-
-bool OpenXRManager::EndFrameWithProjection(
+bool OpenXRManager::EndFrame_WithProjection(
     const std::vector<EyeMatrix>& eyesData,
     float nearZ, float farZ,
     //uint32_t viewCount,
     //const std::vector<XrSwapchain>& colorChains,
     //const std::vector<XrSwapchain>& depthChains,
-    XMINT2 size, XrTime displayTime) {
+    //XMINT2 size, 
+    XrTime displayTime) {
 
     //std::vector<XrSwapchain> xr_viewChainsColor;
     //std::vector<XrSwapchain> xr_viewChainsDepth;
@@ -1640,8 +1291,8 @@ bool OpenXRManager::EndFrameWithProjection(
         depthInfos[i].subImage.imageArrayIndex = 0;
         depthInfos[i].subImage.imageRect.offset.x = 0;
         depthInfos[i].subImage.imageRect.offset.y = 0;
-        depthInfos[i].subImage.imageRect.extent.width = size.x;
-        depthInfos[i].subImage.imageRect.extent.height = size.y;
+        depthInfos[i].subImage.imageRect.extent.width = recommendedScaledResolution.x;
+        depthInfos[i].subImage.imageRect.extent.height = recommendedScaledResolution.y;
         depthInfos[i].minDepth = 0.0f;
         depthInfos[i].maxDepth = 1.0f;
         depthInfos[i].nearZ = nearZ;
@@ -1658,8 +1309,8 @@ bool OpenXRManager::EndFrameWithProjection(
         projViews[i].subImage.imageArrayIndex = 0;
         projViews[i].subImage.imageRect.offset.x = 0;
         projViews[i].subImage.imageRect.offset.y = 0;
-        projViews[i].subImage.imageRect.extent.width = size.x;
-        projViews[i].subImage.imageRect.extent.height = size.y;
+        projViews[i].subImage.imageRect.extent.width = recommendedScaledResolution.x;
+        projViews[i].subImage.imageRect.extent.height = recommendedScaledResolution.y;
     }
 
     XrCompositionLayerProjection layer = {};
@@ -1784,10 +1435,11 @@ void OpenXRManager::DestroySwapchains() {
 
     xr_viewChainsColor.clear();
     xr_viewChainsDepth.clear();
-    xr_colorImagesPerView.clear();
-    xr_depthImagesPerView.clear();
+    xr_colorSwapchainImage.clear();
+    xr_depthSwapchainImage.clear();
 
     OutputDebugStringA("[XR] Destroyed swapchains.\n");
+
 }
 
 void OpenXRManager::OnDestroy() {
@@ -1824,295 +1476,6 @@ void OpenXRManager::OnDestroy() {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-//-----------------
-
-
-
-
-
-
-
-
-/*
-
-
-
-
-bool OpenXRManager::LogCurrentInteractionProfiles() {
-    if (xr_instance == XR_NULL_HANDLE || xr_session == XR_NULL_HANDLE) return false;
-
-    auto dump = [&](const char* userPathStr) {
-        XrPath userPath = XR_NULL_PATH;
-        if (XR_FAILED(xrStringToPath(xr_instance, userPathStr, &userPath))) return;
-
-        XrInteractionProfileState st{ XR_TYPE_INTERACTION_PROFILE_STATE };
-        if (XR_FAILED(xrGetCurrentInteractionProfile(xr_session, userPath, &st))) return;
-
-        char buf[512];
-        if (st.interactionProfile != XR_NULL_PATH) {
-            char pathStr[256] = {};
-            uint32_t outCount = 0;
-            xrPathToString(xr_instance, st.interactionProfile, sizeof(pathStr), &outCount, pathStr);
-            sprintf_s(buf, "[XR] current profile for %s = %s\n", userPathStr, pathStr);
-        }
-        else {
-            sprintf_s(buf, "[XR] current profile for %s = <none>\n", userPathStr);
-        }
-        OutputDebugStringA(buf);
-        };
-    dump("/user/hand/left");
-    dump("/user/hand/right");
-    return true;
-}
-
-
-bool OpenXRManager::XR_OK_(XrResult r, const char* where) {
-    if (XR_FAILED(r)) {
-        char name[128] = {};
-        if (xr_instance != XR_NULL_HANDLE) xrResultToString(xr_instance, r, name);
-        char buf[256];
-        sprintf_s(buf, "[XR][ERR] %s -> 0x%08X (%s)\n", where, r, name[0] ? name : "unknown");
-        OutputDebugStringA(buf);
-        return false;
-    }
-    return true;
-}
-
-bool OpenXRManager::InitSimpleControllerTest() {
-
-
-    if (xr_instance == XR_NULL_HANDLE || xr_session == XR_NULL_HANDLE) {
-        OutputDebugStringA("[XR][ERR] InitSimpleControllerTest: xrInstance_ or xrSession_ is null\n");
-        return false;
-    }
-
-    if (!XR_OK_(xrStringToPath(xr_instance, "/user/hand/left", &pathLeft_), "xrStringToPath left"))  return false;
-    if (!XR_OK_(xrStringToPath(xr_instance, "/user/hand/right", &pathRight_), "xrStringToPath right")) return false;
-
-    {
-        XrActionSetCreateInfo ci{ XR_TYPE_ACTION_SET_CREATE_INFO };
-        strncpy_s(ci.actionSetName, XR_MAX_ACTION_SET_NAME_SIZE, "test_set", _TRUNCATE);
-        strncpy_s(ci.localizedActionSetName, XR_MAX_LOCALIZED_ACTION_SET_NAME_SIZE, "Test Set", _TRUNCATE);
-        ci.priority = 0;
-
-        if (!XR_OK_(xrCreateActionSet(xr_instance, &ci, &actionSet_), "xrCreateActionSet"))
-            return false;
-    }
-
-    {
-        XrActionCreateInfo ai{ XR_TYPE_ACTION_CREATE_INFO };
-        ai.actionType = XR_ACTION_TYPE_BOOLEAN_INPUT;
-        strncpy_s(ai.actionName, XR_MAX_ACTION_NAME_SIZE, "select", _TRUNCATE);
-        strncpy_s(ai.localizedActionName, XR_MAX_LOCALIZED_ACTION_NAME_SIZE, "Select", _TRUNCATE);
-
-        XrPath subpaths[2] = { pathLeft_, pathRight_ };
-        ai.countSubactionPaths = 2;
-        ai.subactionPaths = subpaths;
-
-        if (!XR_OK_(xrCreateAction(actionSet_, &ai, &actSelect_), "xrCreateAction(select)"))
-            return false;
-    }
-
-    {
-        XrPath ipOculus = XR_NULL_PATH;
-        XrPath pathLeftX = XR_NULL_PATH;
-        XrPath pathRightA = XR_NULL_PATH;
-
-        //if (!XR_OK_(xrStringToPath(xr_instance, "/interaction_profiles/khr/simple_controller", &ipSimple), "xrStringToPath simple_controller")) return false;
-        if (!XR_OK_(xrStringToPath(xr_instance, "/interaction_profiles/oculus/touch_controller", &ipOculus), "xrStringToPath oculus_controller")) return false;
-
-
-        if (!XR_OK_(xrStringToPath(xr_instance, "/user/hand/left/input/x/click", &pathLeftX),
-            "xrStringToPath left x")) return false;
-        if (!XR_OK_(xrStringToPath(xr_instance, "/user/hand/right/input/a/click", &pathRightA),
-            "xrStringToPath right a")) return false;
-
-        XrActionSuggestedBinding binds[2] = {};
-        binds[0].action = actSelect_;
-        binds[0].binding = pathLeftX;
-        binds[1].action = actSelect_;
-        binds[1].binding = pathRightA;
-
-        XrInteractionProfileSuggestedBinding profile{ XR_TYPE_INTERACTION_PROFILE_SUGGESTED_BINDING };
-        profile.interactionProfile = ipOculus;
-        profile.countSuggestedBindings = 2;
-        profile.suggestedBindings = binds;
-
-        if (!XR_OK_(xrSuggestInteractionProfileBindings(xr_instance, &profile),
-            "xrSuggestInteractionProfileBindings"))
-            return false;
-    }
-
-    {
-        XrSessionActionSetsAttachInfo ai{ XR_TYPE_SESSION_ACTION_SETS_ATTACH_INFO };
-        ai.countActionSets = 1;
-        ai.actionSets = &actionSet_;
-        if (!XR_OK_(xrAttachSessionActionSets(xr_session, &ai), "xrAttachSessionActionSets"))
-            return false;
-    }
-
-    OutputDebugStringA("[XR] Simple controller test: init OK\n");
-    return true;
-}
-
-void OpenXRManager::PollSimpleController() {
-
-    if (actionSet_ == XR_NULL_HANDLE || actSelect_ == XR_NULL_HANDLE) {
-        return;
-    }
-
-    XrActiveActionSet active{};
-    active.actionSet = actionSet_;
-
-    XrActionsSyncInfo sync{ XR_TYPE_ACTIONS_SYNC_INFO };
-    sync.countActiveActionSets = 1;
-    sync.activeActionSets = &active;
-
-    if (!XR_OK_(xrSyncActions(xr_session, &sync), "xrSyncActions"))
-        return;
-
-    XrActionStateBoolean left{}; left.type = XR_TYPE_ACTION_STATE_BOOLEAN;
-    XrActionStateBoolean right{}; right.type = XR_TYPE_ACTION_STATE_BOOLEAN;
-
-    if (GetSelectState_(pathLeft_, left) && left.isActive && left.currentState) {
-        OutputDebugStringA("[XR] LEFT select = DOWN\n");
-    }
-    if (GetSelectState_(pathRight_, right) && right.isActive && right.currentState) {
-        OutputDebugStringA("[XR] RIGHT select = DOWN\n");
-    }
-
-
-    //LogCurrentInteractionProfiles();
-    //Diag_CheckPathsAndReSuggest();
-    //Diag_LogBasics();
-    //PumpEventsOnce();
-}
-
-bool OpenXRManager::GetSelectState_(XrPath subPath, XrActionStateBoolean& out) {
-    XrActionStateGetInfo gi{ XR_TYPE_ACTION_STATE_GET_INFO };
-    gi.action = actSelect_;
-    gi.subactionPath = subPath;
-
-    if (!XR_OK_(xrGetActionStateBoolean(xr_session, &gi, &out), "xrGetActionStateBoolean")) {
-        out.isActive = XR_FALSE;
-        out.currentState = XR_FALSE;
-        return false;
-    }
-    return true;
-}
-
-void OpenXRManager::ShutdownSimpleControllerTest() {
-    if (actSelect_ != XR_NULL_HANDLE) {
-        xrDestroyAction(actSelect_);
-        actSelect_ = XR_NULL_HANDLE;
-    }
-    if (actionSet_ != XR_NULL_HANDLE) {
-        xrDestroyActionSet(actionSet_);
-        actionSet_ = XR_NULL_HANDLE;
-    }
-    pathLeft_ = XR_NULL_PATH;
-    pathRight_ = XR_NULL_PATH;
-}
-
-void OpenXRManager::Diag_CheckPathsAndReSuggest() {
-    auto chk = [&](const char* p) {
-        XrPath x = XR_NULL_PATH;
-        XrResult r = xrStringToPath(xr_instance, p, &x);
-        char buf[256];
-        sprintf_s(buf, "[XR] path %s -> %s (0x%08X)\n", p, XR_SUCCEEDED(r) ? "OK" : "NG", r);
-        OutputDebugStringA(buf);
-        };
-
-    // プロファイル
-    chk("/interaction_profiles/khr/simple_controller");
-    chk("/interaction_profiles/oculus/touch_controller");
-    chk("/interaction_profiles/valve/index_controller");
-    chk("/interaction_profiles/htc/vive_controller");
-    chk("/interaction_profiles/microsoft/motion_controller");
-
-    // 入力パス（あなたが使っているもの）
-    chk("/user/hand/left/input/select/click");
-    chk("/user/hand/right/input/select/click");
-    chk("/user/hand/left/input/x/click");
-    chk("/user/hand/right/input/a/click");
-    chk("/user/hand/left/input/trigger/value");
-    chk("/user/hand/right/input/trigger/value");
-
-    // 念のため Re-Suggest（Attach 済みでも Suggest は呼べます）
-    //SuggestSimpleControllerSelect(xrInstance_, actSelect_);
-    //SuggestOculusTouchTrigger(xrInstance_, actTriggerF_);
-}
-
-
-void OpenXRManager::Diag_LogBasics() {
-
-    
-    // runtime name
-    XrInstanceProperties ip{ XR_TYPE_INSTANCE_PROPERTIES };
-    if (XR_SUCCEEDED(xrGetInstanceProperties(xr_instance, &ip))) {
-        char b[256];
-        sprintf_s(b, "[XR] runtime=%s ver=%u.%u.%u\n",
-            ip.runtimeName,
-            XR_VERSION_MAJOR(ip.runtimeVersion),
-            XR_VERSION_MINOR(ip.runtimeVersion),
-            XR_VERSION_PATCH(ip.runtimeVersion));
-        OutputDebugStringA(b);
-    }
-
-    // instance/session handles
-    {
-        char b[128];
-        sprintf_s(b, "[XR] handles instance=0x%p session=0x%p\n",
-            (void*)xr_instance, (void*)xr_session);
-        OutputDebugStringA(b);
-    }
-    
-
-    // 既にあなたのコードで保持しているキャッシュを表示してください
-    // 例: cachedSessionState_ を 0..n の整数で
-    {
-        char b[128];
-        sprintf_s(b, "[XR] cached session state=%d (expect FOCUSED=7 or VISIBLE=6)\n",
-            (int)xr_sessionState);
-        OutputDebugStringA(b);
-    }
-}
-
-void OpenXRManager::PumpEventsOnce() {
-    XrEventDataBuffer ev{ XR_TYPE_EVENT_DATA_BUFFER };
-    while (xrPollEvent(xr_instance, &ev) == XR_SUCCESS) {
-        if (ev.type == XR_TYPE_EVENT_DATA_INTERACTION_PROFILE_CHANGED) {
-            XrEventDataInteractionProfileChanged* pc =
-                (XrEventDataInteractionProfileChanged*)&ev;
-            OutputDebugStringA("[XR] EVENT: InteractionProfileChanged\n");
-            LogCurrentInteractionProfiles(); // ←あなたの既存関数
-        }
-        else if (ev.type == XR_TYPE_EVENT_DATA_SESSION_STATE_CHANGED) {
-            XrEventDataSessionStateChanged* sc =
-                (XrEventDataSessionStateChanged*)&ev;
-            xr_sessionState = sc->state; // 例
-            char b[128];
-            sprintf_s(b, "[XR] EVENT: SessionStateChanged -> %d\n", (int)xr_sessionState);
-            OutputDebugStringA(b);
-        }
-        ev = {}; ev.type = XR_TYPE_EVENT_DATA_BUFFER; // クリアして継続
-    }
-}
-*/
 
 
 

@@ -18,13 +18,12 @@ public:
 
     struct State {
         bool  isActive = false;         // その手の入力が現在有効か
-        //bool  select = false;           // 人差し指ボタン 決定（プロファイルによってはtrigger>0相当）
-        bool  selectClick = false;   // 人差し指トリガーのクリック（デジタル）
-        float selectValue = 0.0f;    // 人差し指トリガーのアナログ値(0..1)
+        bool  triggerClick = false;      // 人差し指トリガーのクリック（デジタル）
+        float triggerValue = 0.0f;       // 人差し指トリガーのアナログ値(0..1)
         bool  squeezeClick = false;     // 中指ボタン つかむ(クリック)
         float squeezeValue = 0.0f;      // 中指ボタン つかむ(アナログ値 0..1)
-        XrVector2f thumbstick{ 0,0 };   // スティック
-        bool  thumbstickClick = false;  // スティック押し込み
+        XrVector2f stickValue{ 0,0 };   // スティック
+        bool  stickClick = false;  // スティック押し込み
         bool  menu = false;             // メニューボタン
 
         bool  buttonA = false;          // Aボタン
@@ -34,6 +33,7 @@ public:
 
         XrPosef aimPose{};              // レイ用途の姿勢
         XrPosef gripPose{};             // コントローラ実位置
+
         bool  hasAimPose = false;
         bool  hasGripPose = false;
     };
@@ -45,7 +45,7 @@ public:
     // 初期化：インスタンス/セッション/アプリ空間を渡す
     bool Initialize(XrInstance instance, XrSession session, XrSpace appSpace);
 
-    bool MakeAction(XrActionType type, const char* name, const char* loc, XrAction& out);
+    bool AddActionToActionSet(XrActionType type, const char* name, const char* loc, XrAction& out);
 
     bool SuggestBindings(const char* profile, std::initializer_list<XrActionSuggestedBinding> bindings);
 
@@ -118,19 +118,15 @@ public:
     const State& Right() const { return stateRight; }
 
 
-
-
-    // Pose → LHモデル行列（DirectXMath）
-    static DirectX::XMMATRIX PoseToLHMatrix(const XrPosef& pose);
-
-    // 任意：現在のインタラクションプロファイルの文字列（/interaction_profiles/...）
-    std::string GetCurrentInteractionProfilePath(bool leftHand) const;
-
     // 破棄（デストラクタで呼ばれるが、明示破棄も可能）
     void OnDestroy();
 
+
+
 private:
+
     // 内部ヘルパ
+
     static XrPath StrToPath(XrInstance inst, const char* s);
 
     bool CreateActionsAndBindings();
@@ -142,7 +138,6 @@ private:
     bool ReadVec2(XrAction a, XrPath sub, XrVector2f& dst) const;
     bool Locate(XrSpace space, XrPosef& dst, bool& has, XrTime t) const;
 
-private:
     // 外部参照
     XrInstance xrInstance_ = XR_NULL_HANDLE;
     XrSession  xrSession_ = XR_NULL_HANDLE;

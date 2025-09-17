@@ -28,7 +28,7 @@ bool DirectX12App::Initialize(HWND hwnd) {  //ウインドウのハンドルの受け取り
 
     //VRヘッドマウントが使える環境かチェック
 
-    auto VRprobe = OpenXRManager::ProbeSupportDX12();	//Static なのでnewしないで呼べる
+    auto checkSupport = OpenXRManager::CheckVRSupport();	//Static なのでnewしないで呼べる
 
     /*
     switch (VRprobe) {
@@ -59,7 +59,7 @@ bool DirectX12App::Initialize(HWND hwnd) {  //ウインドウのハンドルの受け取り
 
     flg_useVRMode = false;
 
-    if (VRprobe == OpenXRManager::VrSupport::Ready) {
+    if (checkSupport == OpenXRManager::VrSupport::Ready) {
 
         // VRモードが利用可能
 
@@ -1874,11 +1874,11 @@ void DirectX12App::Render() {
     float nearZ = 0.01f; // 近クリップ面
     float farZ = 100.0f; // 遠クリップ面
 
-    XrTime xr_tm;
+    XrTime predictedDisplayTime;    //描画予定時間
 
     if (flg_useVRMode) {
 
-        XR_Manager->BeginFrame(xr_tm);                               // フレーム開始
+        XR_Manager->BeginFrame(predictedDisplayTime);                               // フレーム開始
 
 
     }
@@ -1936,8 +1936,8 @@ void DirectX12App::Render() {
 
             //VR
 
-            //VRの両目の位置のカメラ行列を取得
-            XR_Manager->GetEyeMatrix(xr_tm, nearZ, farZ, eyesData);
+            //VRの両目 の位置のカメラ行列を取得
+            XR_Manager->GetEyeMatrix(predictedDisplayTime, nearZ, farZ, eyesData);
 
             {
                 //CBV（定数バッファ更新） シェーダーで受け取る変数
@@ -1959,9 +1959,9 @@ void DirectX12App::Render() {
             }
 
 
-            //VRのスワップチェーンの描画先を取得
-            OpenXRManager::EyeDirectTarget tgt{};
-            XR_Manager->BeginEyeDirect(commandList.Get(), viewIdx, tgt);
+            //VRのスワップチェーンの描画先を取得    （両目２つ分のターゲット。両方の描画を、それぞれの目の位置で描画する
+            OpenXRManager::EyeDirectTarget tgt{};   //描画先
+            XR_Manager->GetSwapchainDrawTarget(commandList.Get(), viewIdx, tgt);
 
 
             // レンダーターゲットをクリア
@@ -2097,7 +2097,7 @@ void DirectX12App::Render() {
         if (flg_useVRMode) {
 
 
-            XR_Manager->EndEyeDirect(commandList.Get(), viewIdx);
+            XR_Manager->FinishSwapchainDrawTarget(commandList.Get(), viewIdx);
 
 
         }
@@ -2126,11 +2126,11 @@ void DirectX12App::Render() {
     if (flg_useVRMode) {
 
 
-
-        XR_Manager->EndFrameWithProjection(
+        //フレーム終了    （ターゲット（両目）への描画が完全に終わってる状態にしてから
+        XR_Manager->EndFrame_WithProjection(
             eyesData,
             nearZ, farZ,
-            OpenXRManager::recommendedScaledResolution, xr_tm);
+            predictedDisplayTime);
 
     }
 
@@ -2186,6 +2186,7 @@ void DirectX12App::OnDestroy() {
         delete XR_Manager;
         XR_Manager = nullptr;
     }
+
 
     //グラフィックボードの処理の終了を待ってから、アプリケーションを終了する
 
