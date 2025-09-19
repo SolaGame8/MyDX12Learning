@@ -2,7 +2,6 @@
 # ＊このREADMEは作成中です！
 
 
-![img](screenshots/runtime_quest.jpg)
 
 # OpenXRManager (DX12) — README
 
@@ -243,5 +242,44 @@ delete XR_Manager;
 XR_Manager = nullptr;
 ```
 
+---
+
+# このコードでの動作確認結果
+
+- Meta Quest 3 （問題なし）
+- Meta Quest 2 （問題なし）
+- Pico 4 （Pico 専用OpenXRランタイムなら問題なし。SteamVR経由は、NG）
+
+---
+
+# OpenXRランタイムの切り替え方
+
+- Meta Quest
+
+Meta Quest Linkから、Quest用OpenXRを有効にしてください。
+
+![img](screenshots/runtime_quest.jpg)
+
+- Pico 4
+
+Pico Connectからでは、Pico専用OpenXRを有効にできません。
+
+Pico Connectをインストールした以下のフォルダを開きます。
+PICO Connect\openvr_driver\resources\ps_xrt\
+
+ここにある
+	add_runtime.bat
+
+を、右クリックして「管理者権限で実行」。
+yesを入力してエンターすると、Pico専用OpenXRを有効にできます。
+
+![img](screenshots/runtime_pico.jpg)
+
+- SteamVR（このコードの動作確認はできていません）
+
+SteamVRを起動して、小さなVR用ウインドウの設定から
+SteamVR用OpenXRランタイムを有効にしてください。
+
+![img](screenshots/runtime_steamvr.jpg)
 
 
