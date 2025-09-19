@@ -31,7 +31,7 @@ DirectX 12 向けの OpenXR ヘルパークラス **OpenXRManager** の簡易的
   OpenXR-SDK\include;
 
 #### 追加のライブラリディレクトリ
-  OpenXR-SDK\Lib\loader\Debug;
+  OpenXR-SDK\Lib\loader\Debug;  
   OpenXR-SDK\Lib\loader\Release;
   
 ---
