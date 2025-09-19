@@ -50,7 +50,6 @@ XR_Manager = new OpenXRManager();
 XR_Manager->Initialize(dx12Device.Get(), commandQueue.Get());
 ```
 
----
 
 ### 毎フレーム（必須）
 
@@ -59,7 +58,6 @@ XR_Manager->Initialize(dx12Device.Get(), commandQueue.Get());
 XR_Manager->UpdateSessionState(); // OpenXR の情報更新
 ```
 
----
 
 ### コントローラー情報の取得
 
@@ -78,7 +76,6 @@ if (XR_Manager->controllersReady) {
 }
 ```
 
----
 
 ### コントローラー API 一覧
 
@@ -154,7 +151,6 @@ struct State {
 };
 ```
 
----
 
 ### コントローラー振動
 
@@ -168,7 +164,6 @@ XR_Manager->controller.ApplyHaptics(
 );
 ```
 
----
 
 ### ヘッドマウント情報
 
@@ -271,13 +266,13 @@ Pico Connectを使用してPCに接続しています
 
 ## OpenXRランタイムの切り替え方
 
-- Meta Quest
+#### Meta Quest
 
 Meta Quest Linkから、Quest用OpenXRを有効にしてください。
 
 ![img](screenshots/runtime_quest.jpg)
 
-- Pico 4
+#### Pico 4
 
 Pico Connectからでは、Pico専用OpenXRを有効にできません。
 
@@ -292,7 +287,7 @@ yesを入力してエンターすると、Pico専用OpenXRを有効にできま�
 
 ![img](screenshots/runtime_pico.jpg)
 
-- SteamVR（このコードの動作確認はできていません）
+#### SteamVR（このコードの動作確認はできていません）
 
 SteamVRを起動して、小さなVR用ウインドウの設定から
 SteamVR用OpenXRランタイムを有効にしてください。
