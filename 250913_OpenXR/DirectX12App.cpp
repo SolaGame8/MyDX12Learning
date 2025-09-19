@@ -28,32 +28,36 @@ bool DirectX12App::Initialize(HWND hwnd) {  //ウインドウのハンドルの受け取り
 
     //VRヘッドマウントが使える環境かチェック
 
-    auto checkSupport = OpenXRManager::CheckVRSupport();	//Static なのでnewしないで呼べる
+    auto checkSupport = OpenXRManager::CheckVRSupport(0.8f); //Swapchainの解像度のスケール（1.0fでVRヘッドマウントおすすめの数値。0.8f縮小くらいなら画質気にならなかったです
+                                                            //スケール1.0以上の場合、サポートされている最大サイズを確認しています
+
 
     /*
-    switch (VRprobe) {
+    //チェック状況によって分岐させたい場合
 
-    case OpenXRManager::VrSupport::Ready:
-        OutputDebugStringA("[ProbeXR] Ready\n");
-        // VRモードを選択可
-        break;
+    switch (checkSupport) {
 
-    case OpenXRManager::VrSupport::NoHmd:
-        OutputDebugStringA("[ProbeXR] NoHmd\n");
-        // VRモードは「HMDを接続してください」など
-        break;
+        case OpenXRManager::VrSupport::Ready:
+            OutputDebugStringA("[checkSupport] Ready\n");
+            // VRモードを選択可
+            break;
 
-    case OpenXRManager::VrSupport::RuntimeNoD3D12:
-        OutputDebugStringA("[ProbeXR] RuntimeNoD3D12\n");
-        // 現在、接続されているOpenXRランタイムがD3D12拡張を未サポート
-        break;
+        case OpenXRManager::VrSupport::NoHmd:
+            OutputDebugStringA("[checkSupport] NoHmd\n");
+            // ヘッドマウントなし。VRモードは「HMDを接続してください」など
+            break;
 
-    case OpenXRManager::VrSupport::RuntimeUnavailable:
-    case OpenXRManager::VrSupport::InstanceFailed:
-    default:
-        OutputDebugStringA("[ProbeXR] InstanceFailed\n");
-        // ランタイムが無い/壊れている
-        break;
+        case OpenXRManager::VrSupport::RuntimeNoD3D12:
+            OutputDebugStringA("[checkSupport] RuntimeNoD3D12\n");
+            // 現在、接続されているOpenXRランタイムが、D3D12拡張を未サポート
+            break;
+
+        case OpenXRManager::VrSupport::RuntimeUnavailable:
+        case OpenXRManager::VrSupport::InstanceFailed:
+        default:
+            OutputDebugStringA("[checkSupport] InstanceFailed\n");
+            // ランタイムが無い/壊れている
+            break;
     }
     */
 
@@ -75,7 +79,7 @@ bool DirectX12App::Initialize(HWND hwnd) {  //ウインドウのハンドルの受け取り
             //VRモードで起動
             flg_useVRMode = true;
 
-            //おすすめ解像度をスケールダウン（0.8）したもの
+            //おすすめ解像度をスケールダウン（0.8。チェックの時に指定した値）したサイズを取得
             ResResolution.x = OpenXRManager::recommendedScaledResolution.x;
             ResResolution.y = OpenXRManager::recommendedScaledResolution.y;
 

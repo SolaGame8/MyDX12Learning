@@ -7,20 +7,33 @@
 #include <thread>
 
 XMINT2 OpenXRManager::recommendedResolution = { 1024, 1024 };           //ヘッドマウントがおすすめする解像度
-XMINT2 OpenXRManager::recommendedScaledResolution = { 1024, 1024 };     //0.8倍に縮小して描画しています（そのままでも普通の速度出そうです
+XMINT2 OpenXRManager::recommendedScaledResolution = { 1024, 1024 };     //ヘッドマウントがおすすめする解像度を、縮小スケールして使用しています
+float OpenXRManager::resolutionScale = 1.0f;                            //縮小スケール  （0.8fくらいならそんなに画質は気にならなかったです。実行速度によって調整）
 
-uint32_t OpenXRManager::xr_viewCount = 0; //ビューの数。両目 = 2 になるはず
+uint32_t OpenXRManager::xr_viewCount = 0;                               //ビューの数。両目 = 2 になるはず
 
-OpenXRManager::VrSupport OpenXRManager::CheckVRSupport() {
+
+OpenXRManager::VrSupport OpenXRManager::CheckVRSupport(float resoScale) {
 
 
     //VR機器の接続状況をチェックする
 
-    //SteamVRがうまくいかなくて、現在でバック出力多めです
+    //＊SteamVRがうまくいかなくて、現在、デバッグ出力多めです
+    OutputDebugStringA("CheckVRSupport\n");
+
+
+    //Swapchainの解像度の縮小率（使用できるか解像度をチェック）
+
+    resolutionScale = resoScale;    //VRヘッドマウントがおすすめする解像度から、さらに解像度を下げて実行速度調整できます。0.8fくらいなら気にならなかったです
+                                    //1.0fを超える場合は、サポートされている最大サイズまでにしています
+
+    const float minimumThreshold = 0.3f;    //最低縮小率（暫定
+    if (resolutionScale < minimumThreshold) {
+        resolutionScale = minimumThreshold;
+    }
 
 
     //ランタイムと拡張の列挙
-    OutputDebugStringA("CheckVRSupport\n");
 
     //拡張機能の 数のみ を取得
     uint32_t extCount = 0;
@@ -54,10 +67,53 @@ OpenXRManager::VrSupport OpenXRManager::CheckVRSupport() {
 
     bool found = false;
     for (auto& e : exts) {
+
+        //DX12用の機能拡張
         if (strcmp(e.extensionName, XR_KHR_D3D12_ENABLE_EXTENSION_NAME) == 0) { //"XR_KHR_D3D12_enable"があるかどうか
             found = true;   // D3D12 が使える
-            break;
+            OutputDebugStringA("[CheckVRSupport] extention : XR_KHR_D3D12_ENABLE (found) \n");
+            //break;
         }
+
+        //--------その他の機能拡張 例
+
+        //XR_FB_passthrough: VR空間に現実のカメラ映像を表示します。
+        if (strcmp(e.extensionName, XR_FB_PASSTHROUGH_EXTENSION_NAME) == 0) {
+            OutputDebugStringA("[CheckVRSupport] extention : XR_FB_PASSTHROUGH (found) \n");
+        }
+
+        //XR_EXT_hand_interaction: 手のポーズを認識し、コントローラーの代わりに入力として使います。
+        //XR_EXT_hand_joints_motion_range: ＜ハンドトラッキング＞の関節の可動域を制限します。
+        //XR_EXT_hand_tracking : 手の動きを追跡し、＜関節の位置データ＞を取得します。
+        if (strcmp(e.extensionName, XR_EXT_HAND_TRACKING_EXTENSION_NAME) == 0) {
+            OutputDebugStringA("[CheckVRSupport] extention : XR_EXT_HAND_TRACKING (found) \n");
+        }
+
+        //XR_EXT_eye_gaze_interaction: ＜視線追跡＞データを使って入力操作を可能にします。
+        //XR_FB_eye_tracking_social: ソーシャルVR向けに視線追跡データを取得します。
+
+        //XR_FB_body_tracking: 身体の動きを追跡し、全身のポーズデータを取得します。
+        //XR_FB_face_tracking: 顔の表情を追跡します。
+        //XR_FB_face_tracking2: face_trackingの更新版で、より高精度な表情追跡を提供します。
+       
+        //XR_FB_scene: （Meta/Quest系）環境の空間認識データ（シーン）を扱います。部屋・壁・オブジェクト境界などをエンティティ化して扱えます。
+        //XR_FB_scene_capture : （Meta/Quest系）ユーザーが部屋の3Dスキャンを実行できるようにします。
+        //XR_META_spatial_entity_mesh（Meta） Spatial Entity に三角形メッシュ成分を持たせ、xrGetSpaceTriangleMeshMETA で** 頂点・インデックス（CCW）** を取得できます。メッシュ成分（XR_SPACE_COMPONENT_TYPE_TRIANGLE_MESH_META）を有効化しておく必要があります。
+        //XR_EXT_plane_detection: （マルチベンダ拡張）環境内の平面（床、壁など）を検出します。
+        if (strcmp(e.extensionName, XR_FB_SCENE_EXTENSION_NAME) == 0) {
+            OutputDebugStringA("[CheckVRSupport] extention : XR_FB_SCENE (found) \n");
+        }
+
+        //XR_META_environment_depth:（Meta/Quest）デバイス側の深度センサー等から環境深度マップを供給。
+
+        //XR_EXT_local_floor: ユーザーの床を基準にした座標系を提供します。
+        //XR_EXT_user_presence: ユーザーがデバイスを装着しているか、あるいは近くにいるかを検出します。
+
+        //XR_FB_haptic_amplitude_envelope: （Meta/Quest系）振動フィードバックの振幅を制御します。
+        //XR_FB_haptic_pcm : 独自のオーディオ波形から触覚フィードバックを生成します。
+
+        //XR_FB_render_model: コントローラーやデバイスの3Dモデルを取得します。
+
     }
 
     if (!found) {
@@ -201,15 +257,13 @@ OpenXRManager::VrSupport OpenXRManager::CheckVRSupport() {
 
             OutputDebugStringA("[ProbeXR] done xrEnumerateViewConfigurationViews\n");
 
-            //スケールダウンした解像度を計算
-
-            const float scaleDownRate = 0.8f;
+            //スケールダウンした解像度を計算   （値は、16の倍数にしています）
 
             for (uint32_t i = 0; i < xr_viewCount; i++) {
 
                 // スケールダウン後の浮動小数を計算
-                float fw = (float)views[i].recommendedImageRectWidth * scaleDownRate;
-                float fh = (float)views[i].recommendedImageRectHeight * scaleDownRate;
+                float fw = (float)views[i].recommendedImageRectWidth * resolutionScale;
+                float fh = (float)views[i].recommendedImageRectHeight * resolutionScale;
 
                 // 四捨五入して整数に
                 int w = (int)std::lround(fw);
@@ -228,14 +282,31 @@ OpenXRManager::VrSupport OpenXRManager::CheckVRSupport() {
                 int hUp = hDown + align;
                 if ((h - hDown) <= (hUp - h)) h = hDown; else h = hUp;
 
-                // 出力
+
+                //Swapchainがサポートする最大サイズを超えていないかチェック
+                if (w > props.graphicsProperties.maxSwapchainImageWidth) {
+                    w = props.graphicsProperties.maxSwapchainImageWidth;
+                }
+                if (h > props.graphicsProperties.maxSwapchainImageHeight) {
+                    h = props.graphicsProperties.maxSwapchainImageHeight;
+                }
+                //片目の最大解像度を超えていないかチェック
+                if (w > views[i].maxImageRectWidth) {
+                    w = views[i].maxImageRectWidth;
+                }
+                if (h > views[i].maxImageRectHeight) {
+                    h = views[i].maxImageRectHeight;
+                }
+
+
+                // デバッグ出力
                 char buf[256];
                 sprintf_s(buf,
                     "[XR] View %u: Recommended %u x %u, ScaleDown(%0.1f) -> %d x %d\n",
                     i,
                     views[i].recommendedImageRectWidth,
                     views[i].recommendedImageRectHeight,
-                    scaleDownRate,
+                    resolutionScale,
                     w, h);
 
                 OutputDebugStringA(buf);
@@ -244,7 +315,7 @@ OpenXRManager::VrSupport OpenXRManager::CheckVRSupport() {
                 recommendedResolution.x = views[i].recommendedImageRectWidth;
                 recommendedResolution.y = views[i].recommendedImageRectHeight;
 
-                //スケールダウン(0.8) 16の倍数になっている
+                //スケールダウン   （ 16の倍数になっている
                 recommendedScaledResolution.x = w;
                 recommendedScaledResolution.y = h;
 
@@ -276,6 +347,8 @@ OpenXRManager::VrSupport OpenXRManager::CheckVRSupport() {
 bool OpenXRManager::Initialize(ID3D12Device* d3d12Device, ID3D12CommandQueue* commQueue) {
 
     //初期化
+
+
 
 
     //入力チェック
@@ -313,7 +386,7 @@ bool OpenXRManager::Initialize(ID3D12Device* d3d12Device, ID3D12CommandQueue* co
         d3d12Device, xr_viewCount,                   //2
         DXGI_FORMAT_R8G8B8A8_UNORM,     //colorフォーマット
         DXGI_FORMAT_D32_FLOAT,          //depthフォーマット
-        recommendedScaledResolution     //解像度
+        recommendedScaledResolution     //解像度（チェックの時に設定したスケールで調整されたサイズ）
         )) return false;
 
 

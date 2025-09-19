@@ -20,11 +20,11 @@
 #ifdef _DEBUG
     #pragma comment(lib, "openxr_loaderd.lib")  //デバッグ用はライブラリ名が違っていた
 #else
-    #pragma comment(lib, "openxr_loader.lib")
+    #pragma comment(lib, "openxr_loader.lib")   //こっちがリリース用のライブラリ
 #endif
 
-//コントローラーマネージャー
-#include "OpenXRController.h"
+
+#include "OpenXRController.h"       //コントローラーマネージャー
 
 
 #include <vector>
@@ -64,7 +64,7 @@ public:
 
 
     // VRの状態を取得
-    static VrSupport CheckVRSupport();
+    static VrSupport CheckVRSupport(float resoScale);
 
 
     bool Initialize(ID3D12Device* d3d12Device, ID3D12CommandQueue* commQueue);
@@ -75,48 +75,36 @@ public:
         uint32_t viewCount,
         DXGI_FORMAT colorFmt,   // DXGI_FORMAT_R8G8B8A8_UNORM
         DXGI_FORMAT depthFmt,   // DXGI_FORMAT_D32_FLOAT
-        XMINT2 size);           // 作る解像度（例: recommendedScaledResolution）
+        XMINT2 size);           // 作る解像度
 
     bool InitControllers();
 
-    bool Start_XR_Session();    //セッション開始
+    bool Start_XR_Session();    //＊セッション開始
 
     bool BeginFrame(XrTime& predictedDisplayTime);
 
     XMMATRIX CreateCameraViewMatrix(const XrPosef& pose);
-
     XMMATRIX CreateProjectionMatrix(const XrFovf& fov, float nearZ, float farZ);
 
     bool GetEyeMatrix(XrTime predictedDisplayTime, float nearZ, float farZ, std::vector<EyeMatrix>& outEyes);
 
-
     bool GetSwapchainDrawTarget(ID3D12GraphicsCommandList* cmd, uint32_t eyeIndex, EyeDirectTarget& out);
-
     bool FinishSwapchainDrawTarget(ID3D12GraphicsCommandList* cmd, uint32_t eyeIndex);
-
-    /*
-    //未完成（DX12 のリソースをSwapchainにコピー
-    bool CopyDX12ResourceToSwapchain(
-        ID3D12GraphicsCommandList* cmd,
-        ID3D12Resource* myColorRT, ID3D12Resource* myDepth,
-        XrSwapchain colorChain, std::vector<XrSwapchainImageD3D12KHR>& colorImgs,
-        XrSwapchain depthChain, std::vector<XrSwapchainImageD3D12KHR>& depthImgs);
-    */
 
     bool EndFrame_WithProjection(const std::vector<EyeMatrix>& eyesData, float nearZ, float farZ, XrTime displayTime);
 
+    bool End_XR_Session();      //＊セッション終了
 
 
-    bool End_XR_Session();          // セッション終了
-
-
-    void UpdateSessionState();      // セッション情報を更新   （これを毎フレーム実行しないと、コントローラーの情報も更新されないので注意
+    void UpdateSessionState();  // セッション情報を更新   （これを毎フレーム実行しないと、コントローラーの情報も更新されないので注意
 
 
     void OnDestroy();
 
 
     //おすすめ解像度
+    static float resolutionScale;
+
     static XMINT2 recommendedResolution;        //ヘッドマウントから取得するおすすめ解像度
     static XMINT2 recommendedScaledResolution;  //0.8倍にして、使用しています
 
