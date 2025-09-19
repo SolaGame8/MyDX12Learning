@@ -24,9 +24,8 @@ DirectX 12 向けの OpenXR ヘルパークラス **OpenXRManager** の簡易的
 ## 前提
 
 - C++ / DirectX 12
-- OpenXR ランタイム（Quest用/Pico用 など）
-- `OpenXRManager` クラスがプロジェクトに組み込まれていること
 - OpenXR SDK（ヘッダーとライブラリ）
+- OpenXR ランタイム（Quest用/Pico用 など）
 
 #### 追加のインクルードパス
   OpenXR-SDK\include;
