@@ -275,15 +275,15 @@ Meta Quest Linkから、Quest用OpenXRを有効にしてください。
 
 ### [ Pico 4 ]
 
-Pico Connectからでは、Pico専用OpenXRを有効にできません。
+Pico Connectからでは、Pico専用OpenXRを有効にできません。  
 
-Pico Connectをインストールした以下のフォルダを開きます。
+Pico Connectをインストールした以下のフォルダを開きます。  
 PICO Connect\openvr_driver\resources\ps_xrt\
 
-ここにある
-	add_runtime.bat
-
-を、右クリックして「管理者権限で実行」。
+ここにある  
+	add_runtime.bat  
+  
+を、右クリックして「管理者権限で実行」。  
 yesを入力してエンターすると、Pico専用OpenXRを有効にできます。
 
 ![img](screenshots/runtime_pico.jpg)
