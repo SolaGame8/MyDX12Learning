@@ -182,7 +182,7 @@ OpenXRManager::VrSupport OpenXRManager::CheckVRSupport(float resoScale) {
 
 
 
-    r = xrCreateInstance(&ci, &inst);
+    r = xrCreateInstance(&ci, &inst);   //インスタンス作成
 
     OutputDebugStringA("[CheckVRSupport] done xrCreateInstance\n");
 
@@ -203,7 +203,7 @@ OpenXRManager::VrSupport OpenXRManager::CheckVRSupport(float resoScale) {
         si.formFactor = XR_FORM_FACTOR_HEAD_MOUNTED_DISPLAY;    //ヘッドマウント
     }
     
-    r = xrGetSystem(inst, &si, &systemId);      //システムID情報取得
+    r = xrGetSystem(inst, &si, &systemId);      //システム情報取得
 
 
     OutputDebugStringA("[CheckVRSupport] done xrGetSystem\n");
@@ -252,6 +252,7 @@ OpenXRManager::VrSupport OpenXRManager::CheckVRSupport(float resoScale) {
                 views[i].next = nullptr;
             }
 
+            //ビューの情報を取得
             xrEnumerateViewConfigurationViews(inst, systemId, XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO, xr_viewCount, &xr_viewCount, views.data());
 
 
@@ -494,6 +495,9 @@ bool OpenXRManager::GetSystemId() {
 
 bool OpenXRManager::CheckGraphicsRequirements(ID3D12Device* d3d12Device) {
 
+
+    //VRヘッドマウント側が要求するスペックがあるか、PC側をチェック
+
     
     if (!d3d12Device) return false;
 
@@ -594,7 +598,7 @@ bool OpenXRManager::CreateSession(ID3D12Device* d3d12Device, ID3D12CommandQueue*
     sci.next = &gb;
     sci.systemId = xr_systemId;
 
-    XrResult r = xrCreateSession(xr_instance, &sci, &xr_session);
+    XrResult r = xrCreateSession(xr_instance, &sci, &xr_session);   //セッション作成
 
     if (!XR_SUCCEEDED(r)) {
         std::ostringstream oss;
@@ -608,10 +612,10 @@ bool OpenXRManager::CreateSession(ID3D12Device* d3d12Device, ID3D12CommandQueue*
 
 
 
-// クラスのメンバにこれがある前提
-// XrSpace xr_appSpace = XR_NULL_HANDLE;
-
 bool OpenXRManager::CreateReferenceSpace(bool preferStage) {
+
+    //参照スペースの作成　（床がある空間なのか、ヘッドマウント開始時の位置の空間なのか
+
 
     if (xr_session == XR_NULL_HANDLE) {
         OutputDebugStringA("CreateReferenceSpace: session is null.\n");
@@ -704,7 +708,7 @@ bool OpenXRManager::CreateSwapchains(
     XMINT2 size) {
 
 
-    //スワップチェーン作成
+    //VRヘッドマウント用のスワップチェーン作成（ヘッドマウントの要求通りの枚数を作る
 
     if (xr_session == XR_NULL_HANDLE) {
         OutputDebugStringA("CreateSwapchains: session is null.\n");
@@ -778,7 +782,7 @@ bool OpenXRManager::CreateSwapchains(
         }
 
 
-        // Depth chain（推奨：合成などに使う場合に必要になるみたい）
+        // Depth chain（推奨：合成などに使う場合に深度情報が必要になるみたいです）
         {
             XrSwapchainCreateInfo sci = {};
             sci.type = XR_TYPE_SWAPCHAIN_CREATE_INFO;
@@ -856,11 +860,12 @@ bool OpenXRManager::CreateSwapchains(
 
                 rtvHandles_[i].resize(imgCount);
 
+                //ヒープの作成
+
                 D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc{};
                 rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
                 rtvHeapDesc.NumDescriptors = imgCount;               // その view の画像枚数ぶん
                 rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-
 
 
                 HRESULT hr = d3d12Device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&rtvHeaps_[i]));
@@ -884,6 +889,7 @@ bool OpenXRManager::CreateSwapchains(
                     D3D12_CPU_DESCRIPTOR_HANDLE h{ cpuStart.ptr + SIZE_T(k) * inc };
                     rtvHandles_[i][k] = h;
 
+                    //ビューの作成
                     // RTV を作成（descは nullptr でOK、フォーマットは swapchain 作成時と整合）
                     d3d12Device->CreateRenderTargetView(
                         xr_colorSwapchainImage[i][k].texture, &rtvDesc, h);
@@ -903,6 +909,7 @@ bool OpenXRManager::CreateSwapchains(
 
                 dsvHandles_[i].resize(imgCount);
 
+                //ヒープの作成
                 D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc{};
                 dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
                 dsvHeapDesc.NumDescriptors = imgCount;
@@ -930,6 +937,7 @@ bool OpenXRManager::CreateSwapchains(
                     D3D12_CPU_DESCRIPTOR_HANDLE h{ cpuStart.ptr + SIZE_T(k) * inc };
                     dsvHandles_[i][k] = h;
 
+                    //ビューの作成
                     d3d12Device->CreateDepthStencilView(
                         xr_depthSwapchainImage[i][k].texture, &dsvDesc, h);
 
@@ -993,6 +1001,8 @@ void OpenXRManager::UpdateSessionState() {
 
     XrResult r = xrPollEvent(xr_instance, &ev); //イベントを 1件 だけ取り出す   //＊＊＊コントローラーの情報取得もこれの実行が必要だった。OpenXR は 「イベント駆動型」
     if (r != XR_SUCCESS) return;
+
+    //セッションのステート
 
     switch (ev.type) {
     case XR_TYPE_EVENT_DATA_SESSION_STATE_CHANGED: {
@@ -1182,12 +1192,13 @@ bool OpenXRManager::GetEyeMatrix(XrTime predictedDisplayTime, float nearZ, float
 
 bool OpenXRManager::GetSwapchainDrawTarget(ID3D12GraphicsCommandList* cmd, uint32_t eyeIndex, EyeDirectTarget& out) {
 
+    //VR用スワップチェーンの描画ターゲットを返す
 
     out.rtv = D3D12_CPU_DESCRIPTOR_HANDLE{ 0 };
     out.dsv = D3D12_CPU_DESCRIPTOR_HANDLE{ 0 };
     out.size = recommendedScaledResolution;
 
-    if (!cmd) { OutputDebugStringA("BeginEyeDirect: cmd is null\n"); return false; }
+    if (!cmd) { OutputDebugStringA("GetSwapchainDrawTarget: cmd is null\n"); return false; }
     if (eyeIndex >= xr_viewCount) { OutputDebugStringA("BeginEyeDirect: eyeIndex OOB\n"); return false; }
 
     // 取得フラグとインデックスを管理して、失敗時に必ず release する
@@ -1201,18 +1212,16 @@ bool OpenXRManager::GetSwapchainDrawTarget(ID3D12GraphicsCommandList* cmd, uint3
         XrSwapchainImageReleaseInfo ri{ XR_TYPE_SWAPCHAIN_IMAGE_RELEASE_INFO };
         if (acquiredColor) xrReleaseSwapchainImage(xr_viewChainsColor[eyeIndex], &ri);
         if (acquiredDepth) xrReleaseSwapchainImage(xr_viewChainsDepth[eyeIndex], &ri);
-        };
+    };
 
-    // 毎フレームの順序チェック: xrWaitFrame -> xrBeginFrame 済みか
-    // 必要ならフラグを OpenXRManager に持ってチェックする
-    // if (!inFrame_) { OutputDebugStringA("BeginEyeDirect: BeginFrame not called\n"); return false; }
 
-    // Acquire/Wait Color
+    // Color
     {
         XrSwapchainImageAcquireInfo acq{ XR_TYPE_SWAPCHAIN_IMAGE_ACQUIRE_INFO };
-        XrResult r = xrAcquireSwapchainImage(xr_viewChainsColor[eyeIndex], &acq, &colorIdx);
+        XrResult r = xrAcquireSwapchainImage(xr_viewChainsColor[eyeIndex], &acq, &colorIdx);    //取得
+
         if (!XR_SUCCEEDED(r)) {
-            char buf[128]; sprintf_s(buf, "BeginEyeDirect: Acquire color failed r=%d\n", r);
+            char buf[128]; sprintf_s(buf, "GetSwapchainDrawTarget: Acquire color failed r=%d\n", r);
             OutputDebugStringA(buf);
             cleanup_on_fail();
             return false;
@@ -1221,21 +1230,23 @@ bool OpenXRManager::GetSwapchainDrawTarget(ID3D12GraphicsCommandList* cmd, uint3
 
         XrSwapchainImageWaitInfo wi{ XR_TYPE_SWAPCHAIN_IMAGE_WAIT_INFO };
         wi.timeout = XR_INFINITE_DURATION;
-        r = xrWaitSwapchainImage(xr_viewChainsColor[eyeIndex], &wi);
+        r = xrWaitSwapchainImage(xr_viewChainsColor[eyeIndex], &wi);    //準備できるまで待つ
+
         if (!XR_SUCCEEDED(r)) {
-            char buf[128]; sprintf_s(buf, "BeginEyeDirect: Wait color failed r=%d\n", r);
+            char buf[128]; sprintf_s(buf, "GetSwapchainDrawTarget: Wait color failed r=%d\n", r);
             OutputDebugStringA(buf);
             cleanup_on_fail();
             return false;
         }
     }
 
-    // Acquire/Wait Depth
+    // Depth
     {
         XrSwapchainImageAcquireInfo acq{ XR_TYPE_SWAPCHAIN_IMAGE_ACQUIRE_INFO };
-        XrResult r = xrAcquireSwapchainImage(xr_viewChainsDepth[eyeIndex], &acq, &depthIdx);
+        XrResult r = xrAcquireSwapchainImage(xr_viewChainsDepth[eyeIndex], &acq, &depthIdx);   //取得
+
         if (!XR_SUCCEEDED(r)) {
-            char buf[128]; sprintf_s(buf, "BeginEyeDirect: Acquire depth failed r=%d\n", r);
+            char buf[128]; sprintf_s(buf, "GetSwapchainDrawTarget: Acquire depth failed r=%d\n", r);
             OutputDebugStringA(buf);
             cleanup_on_fail();
             return false;
@@ -1244,9 +1255,10 @@ bool OpenXRManager::GetSwapchainDrawTarget(ID3D12GraphicsCommandList* cmd, uint3
 
         XrSwapchainImageWaitInfo wi{ XR_TYPE_SWAPCHAIN_IMAGE_WAIT_INFO };
         wi.timeout = XR_INFINITE_DURATION;
-        r = xrWaitSwapchainImage(xr_viewChainsDepth[eyeIndex], &wi);
+        r = xrWaitSwapchainImage(xr_viewChainsDepth[eyeIndex], &wi);    //準備できるまで待つ
+
         if (!XR_SUCCEEDED(r)) {
-            char buf[128]; sprintf_s(buf, "BeginEyeDirect: Wait depth failed r=%d\n", r);
+            char buf[128]; sprintf_s(buf, "GetSwapchainDrawTarget: Wait depth failed r=%d\n", r);
             OutputDebugStringA(buf);
             cleanup_on_fail();
             return false;
@@ -1257,27 +1269,27 @@ bool OpenXRManager::GetSwapchainDrawTarget(ID3D12GraphicsCommandList* cmd, uint3
     ID3D12Resource* colorTex = xr_colorSwapchainImage[eyeIndex][colorIdx].texture;
     ID3D12Resource* depthTex = xr_depthSwapchainImage[eyeIndex][depthIdx].texture;
     if (!colorTex || !depthTex) {
-        OutputDebugStringA("BeginEyeDirect: colorTex or depthTex is null\n");
+        OutputDebugStringA("GetSwapchainDrawTarget: colorTex or depthTex is null\n");
         cleanup_on_fail();
         return false;
     }
     if (eyeIndex >= rtvHandles_.size() || colorIdx >= rtvHandles_[eyeIndex].size()
         || eyeIndex >= dsvHandles_.size() || depthIdx >= dsvHandles_[eyeIndex].size()) {
-        OutputDebugStringA("BeginEyeDirect: handle index OOB\n");
+        OutputDebugStringA("GetSwapchainDrawTarget: handle index OOB\n");
         cleanup_on_fail();
         return false;
     }
     if (rtvHandles_[eyeIndex][colorIdx].ptr == 0) {
-        OutputDebugStringA("BeginEyeDirect: RTV handle is null\n");
+        OutputDebugStringA("GetSwapchainDrawTarget: RTV handle is null\n");
         cleanup_on_fail();
         return false;
     }
     // DSV は無くても描画自体は可能にしたい場合、ここは警告のみにする
     if (dsvHandles_[eyeIndex][depthIdx].ptr == 0) {
-        OutputDebugStringA("BeginEyeDirect: DSV handle is null\n");
+        OutputDebugStringA("GetSwapchainDrawTarget: DSV handle is null\n");
     }
 
-    // バリア
+    // バリア変更
     {
         CD3DX12_RESOURCE_BARRIER bs[] = {
             CD3DX12_RESOURCE_BARRIER::Transition(colorTex, D3D12_RESOURCE_STATE_COMMON,      D3D12_RESOURCE_STATE_RENDER_TARGET),
@@ -1302,6 +1314,7 @@ bool OpenXRManager::FinishSwapchainDrawTarget(
     ID3D12GraphicsCommandList* cmd,
     uint32_t eyeIndex) {
 
+    //VR用スワップチェーンへの描画終了後の処理
 
     if (eyeIndex >= xr_viewCount) return false;
 
@@ -1311,7 +1324,7 @@ bool OpenXRManager::FinishSwapchainDrawTarget(
     ID3D12Resource* colorTex = xr_colorSwapchainImage[eyeIndex][colorIdx].texture;
     ID3D12Resource* depthTex = xr_depthSwapchainImage[eyeIndex][depthIdx].texture;
 
-    // ★ d3dx12 ヘルパーでバリア（RT/DS -> COMMON）
+    // バリアを戻す（RT/DS -> COMMON）
     {
         auto b0 = CD3DX12_RESOURCE_BARRIER::Transition(
             colorTex, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COMMON);
@@ -1321,7 +1334,7 @@ bool OpenXRManager::FinishSwapchainDrawTarget(
         cmd->ResourceBarrier(_countof(barriers), barriers);
     }
 
-    // OpenXR 側へリリース
+    // VR 側へリリース
     XrSwapchainImageReleaseInfo ri{ XR_TYPE_SWAPCHAIN_IMAGE_RELEASE_INFO };
     xrReleaseSwapchainImage(xr_viewChainsColor[eyeIndex], &ri);
     xrReleaseSwapchainImage(xr_viewChainsDepth[eyeIndex], &ri);
@@ -1340,14 +1353,8 @@ bool OpenXRManager::FinishSwapchainDrawTarget(
 bool OpenXRManager::EndFrame_WithProjection(
     const std::vector<EyeMatrix>& eyesData,
     float nearZ, float farZ,
-    //uint32_t viewCount,
-    //const std::vector<XrSwapchain>& colorChains,
-    //const std::vector<XrSwapchain>& depthChains,
-    //XMINT2 size, 
     XrTime displayTime) {
 
-    //std::vector<XrSwapchain> xr_viewChainsColor;
-    //std::vector<XrSwapchain> xr_viewChainsDepth;
 
 
     //VRに最終的に描画した情報を渡す（VRはいい感じに見えるように補正とかするので、描画に使った情報が必要らしい
@@ -1446,6 +1453,8 @@ bool OpenXRManager::End_XR_Session() {
 }
 
 bool OpenXRManager::EndSessionGracefully(uint32_t msTimeout) {
+
+    //きちんと監視しながら、終了させる
 
     if (xr_session == XR_NULL_HANDLE) return true;
 

@@ -31,9 +31,8 @@ bool OpenXRController::Initialize(XrInstance instance, XrSession session, XrSpac
 bool OpenXRController::CreateActionsAndBindings() {
 
 
-    // ActionSet
 
-    //アクションセットを作る
+    //「アクションセット」を作る（ここにアクションを追加します
 
     {
         XrActionSetCreateInfo ci{ XR_TYPE_ACTION_SET_CREATE_INFO };
@@ -60,7 +59,7 @@ bool OpenXRController::CreateActionsAndBindings() {
 
 
 
-    //アクションセットにアクションを追加
+    //「アクションセット」にアクションを追加
 
     // 基本アクション作成
     if (!AddActionToActionSet(XR_ACTION_TYPE_BOOLEAN_INPUT, "select_click", "SelectClick", actTriggerClick_)) return false;
@@ -143,7 +142,7 @@ bool OpenXRController::CreateActionsAndBindings() {
 
 
         // ====== Trigger touch（型: BOOLEAN）======
-        // （必要ならアクションを用意）
+        // （必要ならアクションを用意）   //＊このようなパスが準備されているので必要なら有効にできます。新規でアクションを追加してそれにバインディングします
         // { actTriggerTouch_, StrToPath(xrInstance_, "/user/hand/left/input/trigger/touch") },
         // { actTriggerTouch_, StrToPath(xrInstance_, "/user/hand/right/input/trigger/touch") },
 
@@ -508,6 +507,8 @@ bool OpenXRController::SuggestBindings(const char* profile, std::initializer_lis
 
 bool OpenXRController::CreateSpaces() {
 
+    //両手のコントローラーの、移動回転するスペース（空間）を作成
+
     auto make = [&](XrAction act, XrPath sub, XrSpace& out) {
 
         XrActionSpaceCreateInfo si{ XR_TYPE_ACTION_SPACE_CREATE_INFO };
@@ -568,7 +569,7 @@ bool OpenXRController::Sync(XrSession session, XrTime predictedDisplayTime) {
 
 
 
-    // 今フレームの更新前に「前フレーム」を保存
+    // 今フレームの更新前に「前フレーム」を保存（OnPush判別用）
     if (prevValid_) {
         prevLeft_ = stateLeft;
         prevRight_ = stateRight;
@@ -577,6 +578,8 @@ bool OpenXRController::Sync(XrSession session, XrTime predictedDisplayTime) {
     stateLeft = State{};
     stateRight = State{};
 
+
+    //現在の状態の取得
 
     // isActive 代わりに squeeze の有効性を採用（少なくとも片方がアクティブかどうかの目安）
     stateLeft.isActive = ReadFloat(actSqueezeValue_, pathLeft, stateLeft.squeezeValue);
@@ -617,7 +620,7 @@ bool OpenXRController::Sync(XrSession session, XrTime predictedDisplayTime) {
 
 
 
-    // 初回だけ：以前の値も同じにする（OnPushに影響を与えない）
+    // 初回だけ：以前の値も同じにする（OnPushに影響を与えない）（OnPush判別用）
     if (!prevValid_) {
         prevLeft_ = stateLeft;
         prevRight_ = stateRight;
@@ -630,6 +633,8 @@ bool OpenXRController::Sync(XrSession session, XrTime predictedDisplayTime) {
 
 
 XrPosef OpenXRController::GetPose_LeftController() const {
+
+    //左手コントローラーのポーズ（位置、回転） DX12の座標系に変えています
 
     XrPosef p{};
     p.orientation.w = 1.0f;  // 単位姿勢
@@ -650,6 +655,8 @@ XrPosef OpenXRController::GetPose_LeftController() const {
 }
 
 XrPosef OpenXRController::GetPose_RightController() const {
+
+    //右手コントローラーのポーズ（位置、回転） DX12の座標系に変えています
 
     XrPosef p{};
     p.orientation.w = 1.0f;  // 単位姿勢
@@ -674,12 +681,10 @@ XrVector2f OpenXRController::GetValue_Left_Stick() const { return stateLeft.stic
 XrVector2f OpenXRController::GetValue_Right_Stick() const { return stateRight.stickValue; }
 
 // デッドゾーン適用版（半径dz）
-// 例: dz=0.15f。半径dz未満は(0,0)。それ以外は 0..1 に再マップ（放射状デッドゾーン）
 XrVector2f OpenXRController::GetValue_Left_Stick(float dz) const {
 
     XrVector2f v = stateLeft.stickValue;
 
-    //float d = (dz < 0.0f ? 0.0f : (dz > 0.99f ? 0.99f : dz));
     float d;
     if (dz < 0.0f) {
         d = 0.0f;
@@ -699,9 +704,10 @@ XrVector2f OpenXRController::GetValue_Left_Stick(float dz) const {
     return XrVector2f{ v.x * invm, v.y * invm };
 }
 XrVector2f OpenXRController::GetValue_Right_Stick(float dz) const {
+
+
     XrVector2f v = stateRight.stickValue;
 
-    //float d = (dz < 0.0f ? 0.0f : (dz > 0.99f ? 0.99f : dz));
     float d;
     if (dz < 0.0f) {
         d = 0.0f;
@@ -729,6 +735,7 @@ float OpenXRController::GetValue_Right_SqueezeTrigger() const { return stateRigh
 
 
 // OnPush（立ち上がり）判定：curr==true かつ prev==false
+
 bool OpenXRController::OnPushSelectTrigger(bool leftHand) const {
     if (leftHand)  return (stateLeft.triggerClick && !prevLeft_.triggerClick);
     else           return (stateRight.triggerClick && !prevRight_.triggerClick);
@@ -804,7 +811,7 @@ bool OpenXRController::OnPush_Left_Stick() const { return OnPushStick(/*leftHand
 bool OpenXRController::OnPush_Right_Stick() const { return OnPushStick(/*leftHand=*/false); }
 
 
-// ===== ハプティクス =====
+// ===== ハプティクス（振動） =====
 bool OpenXRController::ApplyHaptics(bool leftHand, float amplitude, float seconds, float frequencyHz) {
 
     XrHapticVibration vib{ XR_TYPE_HAPTIC_VIBRATION };
@@ -819,7 +826,8 @@ bool OpenXRController::ApplyHaptics(bool leftHand, float amplitude, float second
 
 }
 
-// ===== ユーティリティ =====
+// ===== コントローラーのボタン状態 読み込み ユーティリティ =====
+
 bool OpenXRController::ReadBool(XrAction a, XrPath sub, bool& dst) const {
 
 
@@ -882,7 +890,7 @@ bool OpenXRController::Locate(XrSpace space, XrPosef& dst, bool& has, XrTime t) 
 
 
 
-// ===== 内部ヘルパ =====
+// 文字から、XrPathを作る
 XrPath OpenXRController::StrToPath(XrInstance inst, const char* s) {
 
     XrPath p = XR_NULL_PATH;
