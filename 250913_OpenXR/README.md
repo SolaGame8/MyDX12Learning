@@ -28,10 +28,10 @@ DirectX 12 向けの OpenXR ヘルパークラス **OpenXRManager** の簡易的
 - `OpenXRManager` クラスがプロジェクトに組み込まれていること
 - OpenXR SDK（ヘッダーとライブラリ）
 
-### 追加のインクルードパス
+#### 追加のインクルードパス
   OpenXR-SDK\include;
 
-### 追加のライブラリディレクトリ
+#### 追加のライブラリディレクトリ
   OpenXR-SDK\Lib\loader\Debug;
   OpenXR-SDK\Lib\loader\Release;
   
