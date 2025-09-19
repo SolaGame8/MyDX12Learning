@@ -187,7 +187,7 @@ XR_Manager->BeginFrame(predictedDisplayTime);
 ```cpp
 // 目ごとの行列格納用
 struct EyeMatrix {
-    XMMATRIX viewMat; // ビュー行列 (World→View)
+    XMMATRIX viewMat; // ビュー行列
     XMMATRIX projMat; // プロジェクション行列
     XrView   xrView;  // OpenXR の生データ
 };
@@ -202,7 +202,7 @@ XR_Manager->GetEyeMatrix(predictedDisplayTime, nearZ, farZ, eyesData);
 // ---- ここから各ビュー（目）に対する描画 ---- 右目、左目の描画です
 for (uint32_t viewIdx = 0; viewIdx < eyesData.size(); ++viewIdx) {
 
-    OpenXRManager::EyeDirectTarget tgt{}; // 描画先（RTV/DSV など）
+    OpenXRManager::EyeDirectTarget tgt{}; // VRヘッドマウントへの描画先（RTV/DSV など）
     XR_Manager->GetSwapchainDrawTarget(commandList.Get(), viewIdx, tgt); // スワップチェーンの描画先を取得
 
     // DX12 の描画設定
@@ -217,7 +217,7 @@ for (uint32_t viewIdx = 0; viewIdx < eyesData.size(); ++viewIdx) {
 	// 例：commandList->CopyResource(tgt.rtv, renderedResource);
 	// コピー先とサイズが違う場合は、シェーダーなどでコピーしてください
 
-    // スワップチェーンへの描画終了
+    // VRヘッドマウントのスワップチェーンへの描画終了
     XR_Manager->FinishSwapchainDrawTarget(commandList.Get(), viewIdx);
 }
 ```
@@ -226,12 +226,13 @@ for (uint32_t viewIdx = 0; viewIdx < eyesData.size(); ++viewIdx) {
 ```cpp
 // ＊コマンドを閉じて実行し、ターゲットへの描画を完了させる
 commandList->Close();
-// → コマンドキュー、フェンスで完全に描画が完了したかを確認します
+
+// → コマンドキュー、フェンスで「完全に描画が完了したか」を確認します
 ```
 
 - ＊フレーム終了
 ```cpp
-// ＊フレーム終了
+// フレーム終了
 XR_Manager->EndFrame_WithProjection(
     eyesData,            // 取得した両目のカメラ行列
     nearZ, farZ,         // カメラのニア・ファー
