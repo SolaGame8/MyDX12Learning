@@ -27,7 +27,7 @@ DirectX 12 向けの OpenXR ヘルパークラス **OpenXRManager** の簡易的
 
 - C++ / DirectX 12
 - OpenXR SDK（ヘッダーとライブラリ）
-- OpenXR ランタイム（Quest用/Pico用 など）
+- OpenXR ランタイム（Quest用などは、専用アプリでPCに接続するとランタイムが入ります。Pico 4は、[OpenXRランタイムの切り替え方](#OpenXRランタイムの切り替え方)を参照してください）
 
 #### 追加のインクルードパス
   OpenXR-SDK\include;
