@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SolaGame8 GitHub Pages</title>
+	<style>
+        /* ---------------------------------------------------- */
+        /* グローバル設定とレスポンシブなコンテナ */
+        /* ---------------------------------------------------- */
+        body {
+            font-family: 'Inter', 'Noto Sans JP', sans-serif;
+            background-color: #f3f4f6; /* 薄いグレーの背景 */
+            min-height: 100vh;
+            padding: 1rem; /* p-4 に相当 */
+            padding-bottom: 8rem; /* pb-32 に相当 (最下部の余白) */
+            line-height: 1.5;
+        }
+
+        .main-container {
+            width: 100%;
+            max-width: 512px; /* max-w-lg (512px) に相当 */
+            margin-left: auto;
+            margin-right: auto;
+            margin-top: 4rem; /* mt-16 に相当 */
+            padding: 2rem; /* p-8 に相当 */
+            background-color: #ffffff;
+            border-radius: 0.75rem; /* rounded-xl に相当 */
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); /* shadow-2xl に相当 */
+        }
+        
+        /* セクション間のスペース */
+        .space-y > * + * {
+            margin-top: 2rem; /* space-y-8 に相当 */
+        }
+        .project-list-space > * + * {
+            margin-top: 1.5rem; /* space-y-6 に相当（プロジェクトブロック間） */
+        }
+
+        /* ---------------------------------------------------- */
+        /* タイポグラフィと見出し */
+        /* ---------------------------------------------------- */
+        .title {
+            font-size: 1.875rem; /* text-3xl に相当 */
+            font-weight: 800; /* font-extrabold に相当 */
+            color: #1f2937; /* text-gray-900 に相当 */
+            text-align: center;
+            margin-bottom: 1.5rem; /* mb-6 に相当 */
+        }
+
+        .description {
+            font-size: 1.125rem; /* text-lg に相当 */
+            color: #4b5563; /* text-gray-600 に相当 */
+            text-align: center;
+            padding-bottom: 1rem; /* pb-4 に相当 */
+        }
+
+        /* ---------------------------------------------------- */
+        /* プロジェクトブロック */
+        /* ---------------------------------------------------- */
+        .project-block {
+            padding: 1.25rem; /* p-5 に相当 */
+            border: 1px solid #e5e7eb; /* border-gray-200 に相当 */
+            border-radius: 0.75rem; /* rounded-xl に相当 */
+            background-color: #f9fafb; /* bg-gray-50 に相当 */
+            transition: box-shadow 150ms ease-in-out;
+        }
+        
+        /* マウスオーバー時のシャドウ変更 (hover:shadow-md) */
+        .project-block:hover {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
+        }
+
+        .project-block h2 {
+            font-size: 1.25rem; /* text-xl に相当 */
+            font-weight: 700; /* font-bold に相当 */
+            color: #374151; /* text-gray-800 に相当 */
+            margin-bottom: 0.5rem; /* mb-2 に相当 */
+        }
+
+        .project-block p {
+            font-size: 0.875rem; /* text-sm に相当 */
+            color: #6b7280; /* text-gray-500 に相当 */
+            margin-bottom: 1rem; /* mb-4 に相当 */
+        }
+        
+        /* ---------------------------------------------------- */
+        /* ボタン (リンク) のスタイル */
+        /* ---------------------------------------------------- */
+        .action-button {
+            /* flex, inline-flex, items-center */
+            display: inline-flex;
+            align-items: center; 
+            
+            /* padding, border-radius */
+            padding: 0.5rem 1.25rem; /* py-2 px-5 に相当 */
+            border-radius: 0.5rem; /* rounded-lg に相当 */
+            
+            /* background, color */
+            background-color: #4f46e5; /* bg-indigo-600 に相当 */
+            color: #ffffff; /* text-white に相当 */
+            
+            /* text, font */
+            font-weight: 600; /* font-semibold に相当 */
+            text-decoration: none;
+            
+            /* transition */
+            transition: all 150ms ease-in-out;
+        }
+
+        .action-button:hover {
+            background-color: #4338ca; /* hover:bg-indigo-700 に相当 */
+            box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.3), 0 2px 4px -2px rgba(79, 70, 229, 0.2); /* わずかなシャドウを追加 */
+        }
+        
+        .action-button svg {
+            width: 1rem;
+            height: 1rem;
+            margin-left: 0.5rem; /* ml-2 に相当 */
+            transition: transform 150ms ease-in-out;
+        }
+        
+        /* マウスオーバー時の矢印移動 */
+        .action-button:hover svg {
+            transform: translateX(2px);
+        }
+        
+        /* ---------------------------------------------------- */
+        /* フッター */
+        /* ---------------------------------------------------- */
+        .footer {
+            padding-top: 2rem;
+            border-top: 1px solid #f3f4f6; /* border-gray-100 に相当 */
+            margin-top: 2rem; /* mt-8 に相当 */
+            font-size: 0.875rem; /* text-sm に相当 */
+            color: #9ca3af; /* text-gray-400 に相当 */
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen">
+
+    <div class="main-container space-y">
+
+        <h1 class="title">
+            SolaGame8 GitHub Pages
+        </h1>
+
+        <p class="description">
+            学習としてつくったWebで見れるものの置き場です
+        </p>
+
+
+        <div class="space-y">
+            
+            <!-- プロジェクトブロック -->
+            <div class="project-block">
+                
+                <h2>
+                    WebGL テスト
+                </h2>
+
+                <p class="text-sm text-gray-500 mb-4">
+                    １日だけWebGLを勉強しまして、その作りかけの状態のものです
+                </p>
+
+                <!-- 別ウィンドウで開くリンク -->
+                <a href="251010_WebGL/index.html" 
+                   target="_blank" 
+                   rel="noopener noreferrer" 
+                   class="action-button">
+                    デモを見る →
+                </a>
+            </div>
+
+
+
+
+
+        </div>
+
+        <div class="footer">
+            @SolaGame8 / GitHub
+        </div>
+
+    </div>
+
+</body>
+</html>
