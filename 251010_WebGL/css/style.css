@@ -1,0 +1,31 @@
+
+/* 全ページの設定: マージンとスクロールをリセット */
+body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden; /* スクロールバーを非表示 */
+}
+
+/* キャンバスの設定: 全画面表示 */
+#glCanvas {
+    display: block; /* canvasはインライン要素のためブロック要素化 */
+    width: 100vw;   /* ビューポートの幅いっぱい */
+    height: 100vh;  /* ビューポートの高さいっぱい */
+    background-color: #333;
+}
+
+
+/* エラー表示エリア */
+#error {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    padding: 10px;
+    background-color: #fee;
+    border: 1px solid #f00;
+    color: #c00;
+    z-index: 100;
+    display: none; /* 初期状態では非表示 */
+}
+
+
