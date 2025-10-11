@@ -241,6 +241,7 @@ class SolaInputManager {
     /**
      * フルスクリーン表示とウィンドウ表示を切り替える。
      */
+    
     toggleFullscreen() {
         const doc = document;
         const fullscreenElement = doc.fullscreenElement || doc.mozFullScreenElement || doc.webkitFullscreenElement || doc.msFullscreenElement;

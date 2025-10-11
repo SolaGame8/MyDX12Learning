@@ -1,24 +1,30 @@
 <!doctype html>
+
 <html lang="ja">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>My WebGL</title>
-<link rel="stylesheet" href="./css/style.css" />
-</head>
-<body>
-<canvas id="glCanvas" aria-label="WebGL canvas"></canvas>
-<div id="fps-counter" style="position: absolute; top: 10px; left: 10px; color: white; background-color: rgba(0, 0, 0, 0.5); padding: 5px; font-family: monospace;">
-    FPS: 0
-</div>
-<noscript><div class="noscript">Please enable JavaScript.</div></noscript>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>My WebGL</title>
+        <link rel="stylesheet" href="./css/style.css" />
+    </head>
+    <body>
+        <canvas id="glCanvas" aria-label="WebGL canvas"></canvas>
 
-<script src="./js/gl-matrix-min.js"></script>
+        <div id="fps-counter" style="position: absolute; top: 10px; left: 10px; color: white; background-color: rgba(0, 0, 0, 0.5); padding: 5px; font-family: monospace;">
+            FPS: 0
+        </div>
 
-<script src="./js/solaInputManager.js"></script>
-<script src="./js/solaWGL.js"></script>
+        <noscript><div class="noscript">Please enable JavaScript.</div></noscript>
 
-<script src="./js/myApp.js"></script>
+        <script src="./js/gl-matrix-min.js"></script>
 
-</body>
+        <script src="./js/solaMesh.js"></script>
+        <script src="./js/solaTextureManager.js"></script>
+        <script src="./js/solaInputManager.js"></script>
+        <script src="./js/solaWGL.js"></script>
+
+        <script src="./js/myApp.js"></script>
+
+
+    </body>
 </html>

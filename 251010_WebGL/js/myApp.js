@@ -1,5 +1,11 @@
 
 
+const mat4 = glMatrix.mat4;
+const vec2 = glMatrix.vec2;
+const vec3 = glMatrix.vec3;
+const vec4 = glMatrix.vec4;
+
+
 
 window.addEventListener('DOMContentLoaded', async () => { //読み込み完了後
 
@@ -10,6 +16,7 @@ window.addEventListener('DOMContentLoaded', async () => { //読み込み完了�
     let lastTime = performance.now();
     const FPS_UPDATE_INTERVAL = 1000; // 1000ms (1秒) ごとに更新
     */
+
     //FPS表示
     const fpsElement = document.getElementById('fps-counter'); // HTML要素を取得
 
@@ -32,11 +39,39 @@ window.addEventListener('DOMContentLoaded', async () => { //読み込み完了�
     }
 */
     
+
+
+
+    //テクスチャー
+    const triangleTextureKey = "triangle_texture_key";
+    let res = await wgl.textureManager.loadAndRegister(triangleTextureKey, './images/my_texture.png');
     
 
-    // テクスチャのロードと完了を待つ
-    await wgl.loadTexture('./images/my_texture.png'); 
+    //モデル作成
+    let triangleMesh = new SolaMesh(this);
 
+    //頂点
+    triangleMesh.addVertexData({
+            position: [ 0.0,  1.0, 0.0 ], uv: [ 0.5, 0.0 ], normal: [ 0.0, 0.0, 1.0 ],
+            boneIDs: [0.0, 0.0, 0.0, 0.0], boneWeights: [0.0, 0.0, 0.0, 0.0]
+        });
+    triangleMesh.addVertexData({
+            position: [ -1.0, -1.0, 0.0 ], uv: [ 0.0, 1.0 ], normal: [ 0.0, 0.0, 1.0 ],
+            boneIDs: [0.0, 0.0, 0.0, 0.0], boneWeights: [0.0, 0.0, 0.0, 0.0]
+        });
+    triangleMesh.addVertexData({
+            position: [ 1.0, -1.0, 0.0 ], uv: [ 1.0, 1.0 ], normal: [ 0.0, 0.0, 1.0 ],
+            boneIDs: [0.0, 0.0, 0.0, 0.0], boneWeights: [0.0, 0.0, 0.0, 0.0]
+        });
+
+    //インデックス
+    triangleMesh.addIndexData(0, 1, 2);
+
+    //モデルをビルド
+    triangleMesh.buildMesh(wgl);
+
+    //テクスチャーをセット
+    triangleMesh.setTextureKey(triangleTextureKey);
 
 
 
@@ -55,9 +90,8 @@ window.addEventListener('DOMContentLoaded', async () => { //読み込み完了�
     let wasAPressed = false; 
 
 
-    let triangleX = 0.0;
-    let triangleY = 0.0;
-    let scale = 1.0;
+    
+    let gameCounter = 0.0;
 
 
     const render = () => {
@@ -89,6 +123,10 @@ window.addEventListener('DOMContentLoaded', async () => { //読み込み完了�
 
         if (flg_Update) {
 
+
+            
+
+
             const deltaTime = wgl.getDeltaTime();
 
             const fps = wgl.getFps();
@@ -99,8 +137,8 @@ window.addEventListener('DOMContentLoaded', async () => { //読み込み完了�
             }
 
             const stickL = wgl.inputManager.getStickValue('L', 0.15);
-            triangleX = stickL.x;
-            triangleY = -stickL.y; // WebGLのY軸は上が正なのでY軸を反転
+            //triangleX = stickL.x;
+            //triangleY = -stickL.y; // WebGLのY軸は上が正なのでY軸を反転
             
             /*
             if (stickL.x > 0.0 && stickL.y > 0.0) {
@@ -124,10 +162,19 @@ window.addEventListener('DOMContentLoaded', async () => { //読み込み完了�
             }
             // ------------------------------
 
-            // 描画処理 (画面クリア)
-            wgl.draw(triangleX, triangleY, scale);
+            gameCounter += 1.0 * deltaTime;
+            //console.log(`cameraRot ${cameraRot}`);
 
-            //wgl.drawTriangle({x: triangleX, y: triangleY}, scale);
+            wgl.setCameraAngle(gameCounter * 90.0, Math.sin(gameCounter * 0.3) * 90.0, 0.0);
+            wgl.calcCameraPosByDistanceAndAngles();
+
+            wgl.useShaderProgram("Default");
+
+            wgl.clearCanvas();
+
+            triangleMesh.draw(wgl);
+
+
         }
 
         // 次の描画フレームを要求 (ループの継続)
