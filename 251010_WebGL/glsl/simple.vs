@@ -25,18 +25,23 @@ uniform mat4 u_modelMatrix; //Model 行列
 //varying vec2 v_texcoord;      // UV情報をフラグメントシェーダーに渡す
 
 out vec2 v_texcoord; // v_texcoordを out に変更
+out vec4 v_normal;
 
 void main() {
 
 
-    // P * V * M * Pos の順
-    gl_Position = u_vpMatrix * u_modelMatrix * a_position;
-    //gl_Position = a_position;
+    mat4 modelViewMatrix = u_vpMatrix * u_modelMatrix;
 
-    //gl_Position = vec4(a_texcoord.x * 2.0 - 1.0, a_texcoord.y * 2.0 - 1.0, 0.0, 1.0);
+    // P * V * M * Pos の順
+    //gl_Position = u_vpMatrix * u_modelMatrix * a_position;
+    gl_Position = modelViewMatrix * a_position;
+
+
+
 
     // UV情報を出力
     v_texcoord = a_texcoord;
+    v_normal = normalize((modelViewMatrix * a_normal).xyzw);
 
 
     // ダミー使用: コンパイラに変数を削除されないようにする

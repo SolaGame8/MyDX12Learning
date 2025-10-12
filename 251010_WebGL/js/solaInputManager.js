@@ -52,9 +52,13 @@ class SolaInputManager {
         this.previousButtonStates = {}; 
         this.currentButtonStates = {}; 
 
+        // 【追加】キーボードの状態管理 (押された瞬間検知用)
+        // Key: キー名 (例: ' ', 'Enter') , Value: boolean (true = 押された瞬間があった)
+        this.keyPushStates = new Map(); 
+
         // キーイベントハンドラを登録
-        this._keyHandler = this._onKey.bind(this);
-        window.addEventListener('keydown', this._keyHandler);
+        this._keyHandlerDown = this._onKeyDown.bind(this);
+        window.addEventListener('keydown', this._keyHandlerDown);
 
 
         // ゲームパッド接続・切断イベントのリスナーを登録
@@ -73,6 +77,36 @@ class SolaInputManager {
     }
 
     
+
+    // 監視対象キーの登録
+    /**
+     * 監視対象とするキーを登録し、初期状態をリセットする。複数回呼び出し可。
+     * @param {string[]} keyNames - 監視したいキーの名前の配列 (例: [' ', 'Enter', 'W'])
+     */
+    addKeyToTrack(keyNames) {
+        for (const key of keyNames) {
+            // Map.set() は、キーが存在すれば上書き、存在しなければ追加を行います。
+            this.keyPushStates.set(key, false);
+        }
+    }
+
+    // 監視対象キーの削除
+    /**
+     * 監視対象からキーを削除する。
+     * @param {string[]} keyNames - 監視を解除したいキーの名前の配列
+     */
+    removeKeyToTrack(keyNames) {
+        for (const key of keyNames) {
+            // Map.delete() は、キーが存在すれば削除し、存在しなければ何もしません。
+            this.keyPushStates.delete(key);
+        }
+    }
+
+
+
+
+
+
     _initializeGamepadTracking(gamepad) {
 
         const index = gamepad.index;
@@ -226,16 +260,65 @@ class SolaInputManager {
 
     }
 
+
+
+// 【新規追加】キーが押された瞬間を取得し、状態をリセットする関数
+    /**
+     * 指定されたキーが「押された瞬間」にのみ true を返し、呼び出し後に状態を false にリセットする。
+     * (イベント駆動型の処理)
+     * @param {string} keyName - 判定したいキーの名前
+     * @returns {boolean} キーが押された瞬間であれば true
+     */
+
+
+    onPushKey(keyName) {
+
+        // 監視対象として登録されているかチェック
+        if (!this.keyPushStates.has(keyName)) {
+            return false;
+        }
+
+        const isPushed = this.keyPushStates.get(keyName);
+
+        // 状態が true であった場合、すぐに false にリセット（次の呼び出しでは false を返すようにする）
+        if (isPushed) {
+            this.keyPushStates.set(keyName, false);
+            return true;
+        }
+        
+        return false;
+    }
+
+
+
+
+
+
     /**
      * キーボードイベントの処理。バックスラッシュ/円記号が押されたらフルスクリーンを切り替える。
      * @param {KeyboardEvent} e 
      */
-    _onKey(e) {
-        // バックスラッシュまたは円記号でフルスクリーンを切り替え
-        if (e.key === '\\' || e.key === '¥') { 
+
+    _onKeyDown(e) {
+
+        const key = e.key;
+
+        // 既存のフルスクリーン切り替えロジック
+        if (key === '\\' || key === '¥') { 
             this.toggleFullscreen();
             e.preventDefault(); 
         }
+
+        // 【追加】監視対象のキーの状態を更新
+        // 監視対象のキーかどうかをチェックし、まだ true でない場合のみ true に設定
+        // （true に設定することで、onPushKeyの次の呼び出しで検知されるようになる）
+
+        if (this.keyPushStates.has(key) && this.keyPushStates.get(key) === false) {
+            this.keyPushStates.set(key, true);
+        }
+
+
+
     }
 
     /**
@@ -278,9 +361,9 @@ class SolaInputManager {
     onDestroy() {
 
         //イベント解除
-        if (this._keyHandler) {
-            window.removeEventListener('keydown', this._keyHandler);
-            this._keyHandler = null;
+        if (this._keyHandlerDown) {
+            window.removeEventListener('keydown', this._keyHandlerDown);
+            this._keyHandlerDown = null;
         }
         if (this._gamepadConnectedHandler) {
             window.removeEventListener("gamepadconnected", this._gamepadConnectedHandler);
@@ -295,6 +378,7 @@ class SolaInputManager {
         this.gamepads = null;
         this.previousButtonStates = null;
 
+        this.keyPushStates = null;
     }
 }
 

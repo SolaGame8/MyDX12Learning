@@ -1,5 +1,19 @@
 
+/*
+const mat4 = glMatrix.mat4;
+const vec2 = glMatrix.vec2;
+const vec3 = glMatrix.vec3;
+const vec4 = glMatrix.vec4;
+*/
 
+const mat4 = glMatrix.mat4; 
+const vec2 = glMatrix.vec2; 
+const vec3 = glMatrix.vec3; 
+const vec4 = glMatrix.vec4; 
+const quat = glMatrix.quat;
+
+//import {vec2, vec3, vec4, quat, mat4} from 'gl-matrix';
+//var MinimalGLTFLoader = require('build/minimal-gltf-loader.js');
 
 class SolaWGL {
 
@@ -60,8 +74,11 @@ class SolaWGL {
         this.inputManager = new SolaInputManager(this); 
         //this.mesh = new SolaMesh(this);
         this.textureManager = new SolaTextureManager(this);
+        //サウンド
+        this.soundManager = new SolaSoundManager();
 
-
+        //glTF
+        this.gltfParser = new SolaGltfParser(this);
 
         //シェーダーデータ
         this.shaderPrograms = new Map();
@@ -892,7 +909,14 @@ class SolaWGL {
             this.textureManage.onDestroy();
             this.textureManage = null;
         }
-
+        if (this.soundManager) {
+            this.soundManager.onDestroy();
+            this.soundManager = null;
+        }
+        if (this.gltfParser) {
+            this.gltfParser.onDestroy();
+            this.gltfParser = null;
+        }
 
 
         // 変数・オブジェクトの参照の破棄

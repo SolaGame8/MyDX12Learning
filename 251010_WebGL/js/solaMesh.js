@@ -87,35 +87,40 @@ class SolaMesh {
             this.vertexData.push(data.position[0], data.position[1], data.position[2], 1.0);
 
         } else {
-            this.vertexData.push([0.0, 0.0, 0.0, 1.0]);
+            this.vertexData.push(0.0, 0.0, 0.0, 1.0);
+            //this.vertexData.push([0.0, 0.0, 0.0, 1.0]);
         }
 
         if (data.uv !== undefined) {
             this.vertexData.push(data.uv[0], data.uv[1]);
 
         } else {
-            this.vertexData.push([0.0, 0.0]);
+            //this.vertexData.push([0.0, 0.0]);
+            this.vertexData.push(0.0, 0.0);
         }
 
         if (data.normal !== undefined) {
             this.vertexData.push(data.normal[0], data.normal[1], data.normal[2], 0.0);
 
         } else {
-            this.vertexData.push([0.0, 0.0, 0.0, 0.0]);
+            //this.vertexData.push([0.0, 0.0, 0.0, 0.0]);
+            this.vertexData.push(0.0, 0.0, 0.0, 0.0);
         }
 
         if (data.boneIDs !== undefined) {
             this.vertexData.push(data.boneIDs[0], data.boneIDs[1], data.boneIDs[2], data.boneIDs[3]);
 
         } else {
-            this.vertexData.push([0.0, 0.0, 0.0, 0.0]);
+            //this.vertexData.push([0.0, 0.0, 0.0, 0.0]);
+            this.vertexData.push(0.0, 0.0, 0.0, 0.0);
         }
 
         if (data.boneWeights !== undefined) {
             this.vertexData.push(data.boneWeights[0], data.boneWeights[1], data.boneWeights[2], data.boneWeights[3]);
 
         } else {
-            this.vertexData.push([0.0, 0.0, 0.0, 0.0]);
+            //this.vertexData.push([0.0, 0.0, 0.0, 0.0]);
+            this.vertexData.push(0.0, 0.0, 0.0, 0.0);
         }
 
 
@@ -127,6 +132,84 @@ class SolaMesh {
         this.indexData.push(idx1, idx2, idx3);
 
     }
+
+    setMeshDataList(meshDataList) {
+
+        //glTFから作ったデータリスト
+        
+        meshDataList.forEach((meshData, primIndex) => {
+
+            const vertexData = meshData.vertexData;
+            const indexDataTyped = meshData.indexData;
+            const STRIDE_FLOATS = 18; 
+            const totalVertices = vertexData.length / STRIDE_FLOATS;
+            
+            // インターリーブ配列を頂点ごとに分解し、addVertexDataで追加
+            console.log(`[myApp] プリミティブ #${primIndex}: 頂点データ ${totalVertices} 個を addVertexData で追加中...`);
+
+            for (let i = 0; i < totalVertices; i++) {
+
+                const offset = i * STRIDE_FLOATS;
+                
+                // 頂点属性を格納するための一時変数 (配列リテラルを使わず、Arrayオブジェクトで初期化)
+                let tempPosition = new Array(3);
+                tempPosition[0] = vertexData[offset + 0];
+                tempPosition[1] = vertexData[offset + 1];
+                tempPosition[2] = vertexData[offset + 2];
+                //3
+
+                let tempUV = new Array(2);
+                tempUV[0] = vertexData[offset + 4];
+                tempUV[1] = vertexData[offset + 5];
+
+                let tempNormal = new Array(3);
+                tempNormal[0] = vertexData[offset + 6];
+                tempNormal[1] = vertexData[offset + 7];
+                tempNormal[2] = vertexData[offset + 8];
+                //9
+
+                let tempBoneId = new Array(4);
+                tempBoneId[0] = vertexData[offset + 10];
+                tempBoneId[1] = vertexData[offset + 11];
+                tempBoneId[2] = vertexData[offset + 12];
+                tempBoneId[2] = vertexData[offset + 13];
+                
+                let tempBoneWeight = new Array(4);
+                tempBoneWeight[0] = vertexData[offset + 14];
+                tempBoneWeight[1] = vertexData[offset + 15];
+                tempBoneWeight[2] = vertexData[offset + 16];
+                tempBoneWeight[2] = vertexData[offset + 17];
+
+
+                // SolaMeshの addVertexData(data) に準拠したオブジェクトを作成し、呼び出す
+                this.addVertexData({
+                    position: tempPosition,
+                    uv: tempUV,
+                    normal: tempNormal,
+                    boneIDs: tempBoneId,
+                    boneWeights: tempBoneWeight
+                });
+
+                // デバッグ表示 (最初の50項目のみ)
+                //if (i < 50) {
+                //    console.log(`[Add #${i}] P:${tempPosition.map(n=>n.toFixed(3))} UV:${tempUV.map(n=>n.toFixed(3))} N:${tempNormal.map(n=>n.toFixed(3))}`);
+                //}
+            }
+            
+            // 3. インデックスデータを追加
+            // addIndexData(idx1, idx2, idx3) に合わせて3つずつ渡します
+            for (let i = 0; i < indexDataTyped.length; i += 3) {
+                this.addIndexData(indexDataTyped[i], indexDataTyped[i + 1], indexDataTyped[i + 2]);
+            }
+            
+        });
+
+
+
+
+    }
+
+
 
 
     //バッファの作成    データバインディング
@@ -183,6 +266,36 @@ class SolaMesh {
     }
     */
 
+    /**
+     * モデルの位置 (position) を設定します。
+     * @param {number} x - X座標
+     * @param {number} y - Y座標
+     * @param {number} z - Z座標
+     */
+    setPosition(x, y, z) {
+        vec3.set(this.position, x, y, z);
+    }
+
+    /**
+     * モデルの回転 (rotation: ラジアン) を設定します。
+     * @param {number} x - X軸 (ロール) 回転 (ラジアン)
+     * @param {number} y - Y軸 (ピッチ) 回転 (ラジアン)
+     * @param {number} z - Z軸 (ヨー) 回転 (ラジアン)
+     */
+    setRotation(x, y, z) {
+        vec3.set(this.rotation, Math.PI * x / 180.0, Math.PI * y / 180.0, Math.PI * z / 180.0);
+    }
+
+    /**
+     * モデルのスケール (scale) を設定します。
+     * @param {number} x - X軸スケール
+     * @param {number} y - Y軸スケール
+     * @param {number} z - Z軸スケール
+     */
+    setScale(x, y, z) {
+        vec3.set(this.scale, x, y, z);
+    }
+
 
     setTextureKey(key) {
         this.textureKey = key;
@@ -209,9 +322,10 @@ class SolaMesh {
         // 1. mat4.create() で単位行列を初期化する
         const modelMatrix = mat4.create();
 
-        // 2. スケールを適用 (S)
-        // mat4.scale(out, a, v) : out = a * S
-        mat4.scale(modelMatrix, modelMatrix, this.scale);
+                // 4. 平行移動を適用 (T)
+        // mat4.translate(out, a, v) : out = a * T
+        mat4.translate(modelMatrix, modelMatrix, this.position);
+
 
         // 3. 回転を適用 (R) - XYZの順で適用
         // mat4.rotate*(out, a, rad) : out = a * R
@@ -219,9 +333,13 @@ class SolaMesh {
         if (this.rotation[1] !== 0) { mat4.rotateY(modelMatrix, modelMatrix, this.rotation[1]); }
         if (this.rotation[2] !== 0) { mat4.rotateZ(modelMatrix, modelMatrix, this.rotation[2]); }
         
-        // 4. 平行移動を適用 (T)
-        // mat4.translate(out, a, v) : out = a * T
-        mat4.translate(modelMatrix, modelMatrix, this.position);
+
+
+        // 2. スケールを適用 (S)
+        // mat4.scale(out, a, v) : out = a * S
+        mat4.scale(modelMatrix, modelMatrix, this.scale);
+
+
 
         // 結果は M = T * R * S となります。
         return modelMatrix;
@@ -334,6 +452,11 @@ class SolaMesh {
             //console.log(`[Draw Check] Drawing ${indexCount} elements (triangles: ${indexCount / 3})`);
 
 
+            //シェーダー変数
+            const modelMatrix = this.getModelMatrix();  //モデルの姿勢行列
+            gl.uniformMatrix4fv(glHelper.uModelMatrixLocation, false, modelMatrix);
+
+
             gl.drawElements(gl.TRIANGLES, this.indexDataUint16Array.length, this.gl.UNSIGNED_SHORT, 0); 
     
             // バインド解除
@@ -341,11 +464,10 @@ class SolaMesh {
             gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);   // インデックスバッファをバインド解除   
 
 
-            //シェーダー変数
-            const modelMatrix = this.getModelMatrix();  //モデルの姿勢行列
-            gl.uniformMatrix4fv(glHelper.uModelMatrixLocation, false, modelMatrix);
 
 
+            //gl.flush();
+            //gl.finish();
 
         }
 
