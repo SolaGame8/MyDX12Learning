@@ -15,7 +15,7 @@ window.addEventListener('DOMContentLoaded', async () => { //読み込み完了�
     */
 
     //FPS表示
-    const fpsElement = document.getElementById('fps-counter'); // HTML要素を取得
+    const messageArea = document.getElementById('messageArea'); // HTML要素を取得
 
 
 
@@ -36,278 +36,875 @@ window.addEventListener('DOMContentLoaded', async () => { //読み込み完了�
     }
 */
     
+    messageArea.textContent = `loading: 0 %`;
+
 
     //キー検知の登録
 
-    wgl.inputManager.addKeyToTrack([' ', '1', '2', '3']);
+    wgl.inputManager.addKeyToTrack([' ', '1', '2', '3'
+        , 'w', 'a', 's', 'd']);
 
 
     //サウンド読み込み
 
     const bgm001Key = "bgm001";
     await wgl.soundManager.loadSound(bgm001Key, "./sound/bgm001.mp3");
+
+    messageArea.textContent = `loading: 2 %`;
+
     const bgm002Key = "bgm002";
     await wgl.soundManager.loadSound(bgm002Key, "./sound/bgm002.mp3");
 
+    messageArea.textContent = `loading: 4 %`;
+
     const sound001Key = "sound001";
     await wgl.soundManager.loadSound(sound001Key, "./sound/s001.mp3");
+
+    messageArea.textContent = `loading: 6 %`;
+
     const sound002Key = "sound002";
     await wgl.soundManager.loadSound(sound002Key, "./sound/s002.mp3");
+
+    messageArea.textContent = `loading: 8 %`;
+
     const sound003Key = "sound003";
     await wgl.soundManager.loadSound(sound003Key, "./sound/s003.mp3");
 
 
 
 
+    messageArea.textContent = `loading: 10 %`;
 
 
     //テクスチャー
     const checkenTextureKey = "checken_texture_key";
     let res = await wgl.textureManager.loadAndRegister(checkenTextureKey, './gltf/chicken_albedo.png');
 
+    messageArea.textContent = `loading: 20 %`;
+
+    const floorTextureKey = "floor_texture_key";
+    res = await wgl.textureManager.loadAndRegister(floorTextureKey, './images/land001.jpg');
+
+    const sphereTextureKey = "sphere_texture_key";
+    res = await wgl.textureManager.loadAndRegister(sphereTextureKey, './images/sky001.jpg');
 
     const triangleTextureKey = "triangle_texture_key";
     res = await wgl.textureManager.loadAndRegister(triangleTextureKey, './images/my_texture.png');
     
+    messageArea.textContent = `loading: 30 %`;
 
     //glTFロード
-    const meshDataList = await wgl.gltfParser.loadModel('./gltf/chicken_walk.gltf');
+    let parser = wgl.gltfParser;
+    //const meshDataList = await wgl.gltfParser.loadModel('./gltf/chicken_walk.gltf');
+    const meshDataList = await parser.loadModel('./gltf/chicken_walk.gltf');
 
 
-    //作成
+
+
+    //3Dモデル作成
     let gltfMesh = new SolaMesh(this);
 
-    gltfMesh.setMeshDataList(meshDataList);
+    {
+        gltfMesh.setMeshDataList(meshDataList);
 
 
-    /*
-    meshDataList.forEach((meshData, primIndex) => {
+        messageArea.textContent = `loading: 50 %`;
 
-        const vertexData = meshData.vertexData;
-        const indexDataTyped = meshData.indexData;
-        const STRIDE_FLOATS = 18; 
-        const totalVertices = vertexData.length / STRIDE_FLOATS;
+
+
+        // モデルをビルド
+        gltfMesh.buildMesh(wgl);
+
+        gltfMesh.setScale(1.0, 1.0, 1.0);
+
+        //テクスチャーをセット
+        gltfMesh.setTextureKey(checkenTextureKey);
+
+    }
+
+    parser.logAvailableAnimationKeys();
+//
+
+
+
+
+
+    const animeKey = "Armature|Take 001|BaseLayer";
+
+    
+    let matrixArray = parser.getAnimationMatrixArray(animeKey);
+
+
+
+
+    if (!matrixArray) {
+        console.warn(`[logAnimationMatrixData] アニメーションキー "${animeKey}" のデータが見つかりませんでした。`);
+        return;
+    }
+
+    // 1つの行列は16成分 (Float32)
+    let MATRIX_SIZE = 16; 
+    let LOG_COUNT = 10;
+    let arrayLength = matrixArray.length;
+    
+    // 表示する行列の最大数を決定
+    let numMatricesToLog = Math.min(LOG_COUNT, arrayLength / MATRIX_SIZE);
+
+    console.log(`\n--- アニメーション行列データ: "${animeKey}" (最初の ${numMatricesToLog} 行列) ---`);
+    console.log(`[データの読み取り順: Frame 0, Bone 0, Frame 0, Bone 1, ...]`);
+
+    for (let i = 0; i < numMatricesToLog; i++) {
+        const offset = i * MATRIX_SIZE;
         
-
+        // i番目の行列のデータ（16成分）を抽出
+        const currentMatrix = matrixArray.slice(offset, offset + MATRIX_SIZE);
         
-        // インターリーブ配列を頂点ごとに分解し、addVertexDataで追加
-        console.log(`[myApp] プリミティブ #${primIndex}: 頂点データ ${totalVertices} 個を addVertexData で追加中...`);
-
-        for (let i = 0; i < totalVertices; i++) {
-
-            const offset = i * STRIDE_FLOATS;
-            
-            // 頂点属性を格納するための一時変数 (配列リテラルを使わず、Arrayオブジェクトで初期化)
-            let tempPosition = new Array(3);
-            tempPosition[0] = vertexData[offset + 0];
-            tempPosition[1] = vertexData[offset + 1];
-            tempPosition[2] = vertexData[offset + 2];
-            //3
-
-            let tempUV = new Array(2);
-            tempUV[0] = vertexData[offset + 4];
-            tempUV[1] = vertexData[offset + 5];
-
-            let tempNormal = new Array(3);
-            tempNormal[0] = vertexData[offset + 6];
-            tempNormal[1] = vertexData[offset + 7];
-            tempNormal[2] = vertexData[offset + 8];
-            //9
-
-            let tempBoneId = new Array(4);
-            tempBoneId[0] = vertexData[offset + 10];
-            tempBoneId[1] = vertexData[offset + 11];
-            tempBoneId[2] = vertexData[offset + 12];
-            tempBoneId[2] = vertexData[offset + 13];
-            
-            let tempBoneWeight = new Array(4);
-            tempBoneWeight[0] = vertexData[offset + 14];
-            tempBoneWeight[1] = vertexData[offset + 15];
-            tempBoneWeight[2] = vertexData[offset + 16];
-            tempBoneWeight[2] = vertexData[offset + 17];
+        // FrameとBoneのIDを推測 (実際には _processAnimationData のロジックに依存)
+        // ここでは便宜上、i番目の行列として表示します。
+        
+        console.log(`\n[Matrix Index: ${i}] (Frame N, Bone M の最終変換行列)`);
+        
+        // 4x4 行列の形式で出力
+        // toFixed(4) で小数点以下4桁に丸めて表示を整形
+        console.log(`  | ${currentMatrix[0].toFixed(4)}  ${currentMatrix[4].toFixed(4)}  ${currentMatrix[8].toFixed(4)}  ${currentMatrix[12].toFixed(4)} |`);
+        console.log(`  | ${currentMatrix[1].toFixed(4)}  ${currentMatrix[5].toFixed(4)}  ${currentMatrix[9].toFixed(4)}  ${currentMatrix[13].toFixed(4)} |`);
+        console.log(`  | ${currentMatrix[2].toFixed(4)}  ${currentMatrix[6].toFixed(4)}  ${currentMatrix[10].toFixed(4)}  ${currentMatrix[14].toFixed(4)} |`);
+        console.log(`  | ${currentMatrix[3].toFixed(4)}  ${currentMatrix[7].toFixed(4)}  ${currentMatrix[11].toFixed(4)}  ${currentMatrix[15].toFixed(4)} |`);
+    }
+    
+    console.log('------------------------------------------------------------');
 
 
-            // SolaMeshの addVertexData(data) に準拠したオブジェクトを作成し、呼び出す
-            gltfMesh.addVertexData({
-                position: tempPosition,
-                uv: tempUV,
-                normal: tempNormal,
-                boneIDs: tempBoneId,
-                boneWeights: tempBoneWeight
-            });
 
-            // デバッグ表示 (最初の50項目のみ)
-            if (i < 50) {
-                 console.log(`[Add #${i}] P:${tempPosition.map(n=>n.toFixed(3))} UV:${tempUV.map(n=>n.toFixed(3))} N:${tempNormal.map(n=>n.toFixed(3))}`);
-            }
+    const maxFrames = parser.getMaxFrameNum(animeKey); 
+    console.log(`${animeKey} 🚨アニメーションの総フレーム数: ${maxFrames}`); 
+
+    const numBones = parser.getNumBones();
+    const totalElements = maxFrames * numBones * 16; 
+    console.log(`🚨ボーン数: ${numBones}`); 
+    console.log(`🚨Float32Arrayの合計要素数: ${totalElements}`);
+
+
+    matrixArray = parser.getInverseBoneMatrixArray();
+    
+    if (!matrixArray) {
+        console.warn('[logInverseMatrixData] Inverse Bind Matrix (IBM) のデータが見つかりませんでした。');
+        return;
+    }
+
+    // 1つの行列は16成分 (Float32)
+    MATRIX_SIZE = 16; 
+    LOG_COUNT = 10;
+    arrayLength = matrixArray.length;
+    
+    // 表示する行列の最大数を決定
+    numMatricesToLog = Math.min(LOG_COUNT, arrayLength / MATRIX_SIZE);
+
+    console.log(`\n--- Inverse Bind Matrix (IBM) データ (最初の ${numMatricesToLog} 行列) ---`);
+    console.log(`[データの読み取り順: Bone 0, Bone 1, ...]`);
+
+    for (let i = 0; i < numMatricesToLog; i++) {
+        const offset = i * MATRIX_SIZE;
+        
+        // i番目のIBM行列のデータ（16成分）を抽出
+        const currentMatrix = matrixArray.slice(offset, offset + MATRIX_SIZE);
+        
+        // iはボーンインデックス (Bone ID) に対応します
+        console.log(`\n[Bone ID: ${i}] (Inverse Bind Matrix)`);
+        
+        // 4x4 行列の形式で出力
+        // toFixed(4) で小数点以下4桁に丸めて表示を整形
+        console.log(`  | ${currentMatrix[0].toFixed(4)}  ${currentMatrix[4].toFixed(4)}  ${currentMatrix[8].toFixed(4)}  ${currentMatrix[12].toFixed(4)} |`);
+        console.log(`  | ${currentMatrix[1].toFixed(4)}  ${currentMatrix[5].toFixed(4)}  ${currentMatrix[9].toFixed(4)}  ${currentMatrix[13].toFixed(4)} |`);
+        console.log(`  | ${currentMatrix[2].toFixed(4)}  ${currentMatrix[6].toFixed(4)}  ${currentMatrix[10].toFixed(4)}  ${currentMatrix[14].toFixed(4)} |`);
+        console.log(`  | ${currentMatrix[3].toFixed(4)}  ${currentMatrix[7].toFixed(4)}  ${currentMatrix[11].toFixed(4)}  ${currentMatrix[15].toFixed(4)} |`);
+    }
+    
+    console.log('------------------------------------------------------------');
+
+
+
+    //＊これは必ず呼ぶ！    jsにデストラクタは無い
+
+    parser.removeModelData();
+
+
+
+
+
+
+
+
+
+    //床モデル作成
+
+    let floorMesh = new SolaMesh(this);
+
+    const noiseSeed = 1234; 
+    const perlin = new solaPerlinNoise(noiseSeed);
+
+    // ノイズのスケール（周波数）: 小さいほどノイズが広がり、大きいほど細かくなる
+    const noiseScale = 0.1; 
+
+    // ノイズの振幅（高さの強調度）: 大きいほど高さの変化が大きくなる
+    const noiseAmplitude = 3.0; 
+
+    // EPSILONを定義（calculateNormal関数より前に置く）
+    // 法線計算に使用する微小なオフセット（差分）
+    const EPSILON = 1.0; 
+
+    /**
+     * ノイズから高さを計算するヘルパー関数
+     * @param {number} x ワールドX座標
+     * @param {number} z ワールドZ座標
+     * @returns {number} ノイズに基づくY座標
+     */
+    function calculateHeight(x, z) {
+        // ノイズ座標にスケールを適用
+        const nx = x * noiseScale;
+        const nz = z * noiseScale;
+        
+        // 3Dノイズを使用し、Y軸は時間やオフセットとして使用（ここでは0.0）
+        const noiseValue = perlin.noise(nx, 0.0, nz);
+        
+        // ノイズ値を振幅でスケールしてY座標とする
+        // ノイズ値は約 -1.0 から 1.0 の範囲
+        return noiseValue * noiseAmplitude;
+    }
+
+    /**
+     * 頂点の法線ベクトルを有限差分法で簡易的に計算する関数
+     * @param {number} x 頂点のX座標
+     * @param {number} z 頂点のZ座標
+     * @returns {number[]} 正規化された法線ベクトル [nx, ny, nz]
+     */
+    function calculateNormal(x, z) {
+        // 1. X方向の傾き（接線ベクトル Tx）を計算
+        // 微小にXをずらした点の高さを取得
+        const hX_plus = calculateHeight(x + EPSILON, z);
+        const hX_minus = calculateHeight(x - EPSILON, z);
+        
+        // X方向の差分ベクトル (Tx)
+        // 慣例的に (2 * EPSILON, hX_plus - hX_minus, 0) を使用しますが、
+        // ここでは差分から直接勾配を計算します。
+        // Tx = (dx, dy/dx * dx, 0)
+        const Tx_x = 2.0 * EPSILON;
+        const Tx_y = hX_plus - hX_minus; 
+        const Tx_z = 0.0; 
+
+        // 2. Z方向の傾き（接線ベクトル Tz）を計算
+        // 微小にZをずらした点の高さを取得
+        const hZ_plus = calculateHeight(x, z + EPSILON);
+        const hZ_minus = calculateHeight(x, z - EPSILON);
+        
+        // Z方向の差分ベクトル (Tz)
+        // Tz = (0, dy/dz * dz, dz)
+        const Tz_x = 0.0;
+        const Tz_y = hZ_plus - hZ_minus; 
+        const Tz_z = 2.0 * EPSILON;
+        
+        // 3. 外積 (Cross Product) で法線を計算: N = Tz x Tx (右上向き)
+        // 地形の上向きを外側にしたいので、(Tz x Tx) が妥当です。
+        // Tx = (Tx_x, Tx_y, 0)
+        // Tz = (0, Tz_y, Tz_z)
+        
+        nx = Tx_y * Tz_z - 0 * Tz_y;      // Tx_y * Tz_z - Tx_z * Tz_y
+        ny = 0 * Tz_x - Tx_x * Tz_z;      // Tx_z * Tz_x - Tx_x * Tz_z
+        nz = Tx_x * Tz_y - Tx_y * 0;      // Tx_x * Tz_y - Tx_y * Tz_x 
+
+        // 4. 法線を正規化（長さを1にする）
+        const length = Math.sqrt(nx * nx + ny * ny + nz * nz);
+        
+        // 正規化された法線ベクトルを返す
+        // ゼロ除算を避ける
+        if (length > 1e-6) {
+            nx /= length;
+            ny /= length;
+            nz /= length;
+            //return [nx / length, ny / length, nz / length];
+        } else {
+            // ノイズの変化が非常に小さい場合は、デフォルトの上向き法線を返す
+            return [0.0, 1.0, 0.0];
         }
-        
-        // 3. インデックスデータを追加
-        // addIndexData(idx1, idx2, idx3) に合わせて3つずつ渡します
-        for (let i = 0; i < indexDataTyped.length; i += 3) {
-            gltfMesh.addIndexData(indexDataTyped[i], indexDataTyped[i + 1], indexDataTyped[i + 2]);
+
+        // 5. Y成分の符号を確認・修正
+        // 地形の「上側」が外側を向くように、nyが正であることを保証する
+        // Tx x Tz の計算では ny が負になることが多い（右手座標系の場合）ため、
+        // nyが負であれば、ベクトル全体を反転させることで、法線を上向き（内側から外側）にする。
+        if (ny < 0) {
+            nx = -nx;
+            ny = -ny;
+            nz = -nz;
         }
-        
-    });
-*/
 
-    // モデルをビルド
-    gltfMesh.buildMesh(wgl);
-
-    gltfMesh.setScale(1.0, 1.0, 1.0);
-
-    //テクスチャーをセット
-    gltfMesh.setTextureKey(checkenTextureKey);
+        return [nx, ny, nz];
 
 
-
-
-
-    //モデル作成
-
-    let cubeMesh = new SolaMesh(this);
-
-    // 頂点データ
-    // 立方体は6面で構成され、各面は2つの三角形（4つの頂点）で構成されます。
-    // 面ごとに法線とUV座標を正しく設定するため、頂点は重複して定義します。（合計 6面 * 4頂点 = 24頂点）
-
-    // 頂点データ: { position: [x, y, z], uv: [u, v], normal: [nx, ny, nz], ... }
-    // boneIDs/boneWeights はスケルタルアニメーション用ですが、今回は全て 0.0 で固定
-    const boneData = { boneIDs: [0.0, 0.0, 0.0, 0.0], boneWeights: [0.0, 0.0, 0.0, 0.0] };
-
-    // -----------------------------------------------------------
-    // 1. 正面 (Front: Z+)
-    // -----------------------------------------------------------
-    // A: 右上 (1, 1, 1)
-    cubeMesh.addVertexData({ position: [ 1.0,  1.0,  1.0 ], uv: [ 1.0, 0.0 ], normal: [ 0.0, 0.0, 1.0 ], ...boneData });
-    // B: 左上 (-1, 1, 1)
-    cubeMesh.addVertexData({ position: [-1.0,  1.0,  1.0 ], uv: [ 0.0, 0.0 ], normal: [ 0.0, 0.0, 1.0 ], ...boneData });
-    // C: 右下 (1, -1, 1)
-    cubeMesh.addVertexData({ position: [ 1.0, -1.0,  1.0 ], uv: [ 1.0, 1.0 ], normal: [ 0.0, 0.0, 1.0 ], ...boneData });
-    // D: 左下 (-1, -1, 1)
-    cubeMesh.addVertexData({ position: [-1.0, -1.0,  1.0 ], uv: [ 0.0, 1.0 ], normal: [ 0.0, 0.0, 1.0 ], ...boneData });
-
-    // -----------------------------------------------------------
-    // 2. 背面 (Back: Z-)
-    // -----------------------------------------------------------
-    // E: 左上 (-1, 1, -1)
-    cubeMesh.addVertexData({ position: [-1.0,  1.0, -1.0 ], uv: [ 1.0, 0.0 ], normal: [ 0.0, 0.0, -1.0 ], ...boneData });
-    // F: 右上 (1, 1, -1)
-    cubeMesh.addVertexData({ position: [ 1.0,  1.0, -1.0 ], uv: [ 0.0, 0.0 ], normal: [ 0.0, 0.0, -1.0 ], ...boneData });
-    // G: 左下 (-1, -1, -1)
-    cubeMesh.addVertexData({ position: [-1.0, -1.0, -1.0 ], uv: [ 1.0, 1.0 ], normal: [ 0.0, 0.0, -1.0 ], ...boneData });
-    // H: 右下 (1, -1, -1)
-    cubeMesh.addVertexData({ position: [ 1.0, -1.0, -1.0 ], uv: [ 0.0, 1.0 ], normal: [ 0.0, 0.0, -1.0 ], ...boneData });
-
-    // -----------------------------------------------------------
-    // 3. 右面 (Right: X+)
-    // -----------------------------------------------------------
-    // A: 右上(前) (1, 1, 1)
-    cubeMesh.addVertexData({ position: [ 1.0,  1.0,  1.0 ], uv: [ 0.0, 0.0 ], normal: [ 1.0, 0.0, 0.0 ], ...boneData });
-    // F: 右上(奥) (1, 1, -1)
-    cubeMesh.addVertexData({ position: [ 1.0,  1.0, -1.0 ], uv: [ 1.0, 0.0 ], normal: [ 1.0, 0.0, 0.0 ], ...boneData });
-    // C: 右下(前) (1, -1, 1)
-    cubeMesh.addVertexData({ position: [ 1.0, -1.0,  1.0 ], uv: [ 0.0, 1.0 ], normal: [ 1.0, 0.0, 0.0 ], ...boneData });
-    // H: 右下(奥) (1, -1, -1)
-    cubeMesh.addVertexData({ position: [ 1.0, -1.0, -1.0 ], uv: [ 1.0, 1.0 ], normal: [ 1.0, 0.0, 0.0 ], ...boneData });
-
-    // -----------------------------------------------------------
-    // 4. 左面 (Left: X-)
-    // -----------------------------------------------------------
-    // B: 左上(前) (-1, 1, 1)
-    cubeMesh.addVertexData({ position: [-1.0,  1.0,  1.0 ], uv: [ 1.0, 0.0 ], normal: [-1.0, 0.0, 0.0 ], ...boneData });
-    // E: 左上(奥) (-1, 1, -1)
-    cubeMesh.addVertexData({ position: [-1.0,  1.0, -1.0 ], uv: [ 0.0, 0.0 ], normal: [-1.0, 0.0, 0.0 ], ...boneData });
-    // D: 左下(前) (-1, -1, 1)
-    cubeMesh.addVertexData({ position: [-1.0, -1.0,  1.0 ], uv: [ 1.0, 1.0 ], normal: [-1.0, 0.0, 0.0 ], ...boneData });
-    // G: 左下(奥) (-1, -1, -1)
-    cubeMesh.addVertexData({ position: [-1.0, -1.0, -1.0 ], uv: [ 0.0, 1.0 ], normal: [-1.0, 0.0, 0.0 ], ...boneData });
-
-    // -----------------------------------------------------------
-    // 5. 上面 (Top: Y+)
-    // -----------------------------------------------------------
-    // B: 左上(前) (-1, 1, 1)
-    cubeMesh.addVertexData({ position: [-1.0,  1.0,  1.0 ], uv: [ 0.0, 1.0 ], normal: [ 0.0, 1.0, 0.0 ], ...boneData });
-    // A: 右上(前) (1, 1, 1)
-    cubeMesh.addVertexData({ position: [ 1.0,  1.0,  1.0 ], uv: [ 1.0, 1.0 ], normal: [ 0.0, 1.0, 0.0 ], ...boneData });
-    // E: 左上(奥) (-1, 1, -1)
-    cubeMesh.addVertexData({ position: [-1.0,  1.0, -1.0 ], uv: [ 0.0, 0.0 ], normal: [ 0.0, 1.0, 0.0 ], ...boneData });
-    // F: 右上(奥) (1, 1, -1)
-    cubeMesh.addVertexData({ position: [ 1.0,  1.0, -1.0 ], uv: [ 1.0, 0.0 ], normal: [ 0.0, 1.0, 0.0 ], ...boneData });
-
-    // -----------------------------------------------------------
-    // 6. 底面 (Bottom: Y-)
-    // -----------------------------------------------------------
-    // D: 左下(前) (-1, -1, 1)
-    cubeMesh.addVertexData({ position: [-1.0, -1.0,  1.0 ], uv: [ 0.0, 0.0 ], normal: [ 0.0, -1.0, 0.0 ], ...boneData });
-    // C: 右下(前) (1, -1, 1)
-    cubeMesh.addVertexData({ position: [ 1.0, -1.0,  1.0 ], uv: [ 1.0, 0.0 ], normal: [ 0.0, -1.0, 0.0 ], ...boneData });
-    // G: 左下(奥) (-1, -1, -1)
-    cubeMesh.addVertexData({ position: [-1.0, -1.0, -1.0 ], uv: [ 0.0, 1.0 ], normal: [ 0.0, -1.0, 0.0 ], ...boneData });
-    // H: 右下(奥) (1, -1, -1)
-    cubeMesh.addVertexData({ position: [ 1.0, -1.0, -1.0 ], uv: [ 1.0, 1.0 ], normal: [ 0.0, -1.0, 0.0 ], ...boneData });
-
-
-    // インデックスデータ
-    // 頂点インデックスは0から始まり、面ごとに 4 ずつ増加します。
-    // 各面は2つの三角形で構成されます: (0, 1, 2) と (2, 1, 3) (または (0, 2, 3) と (0, 3, 1) など)
-
-    for (let i = 0; i < 6; i++) {
-        const offset = i * 4; // 各面の開始インデックス (0, 4, 8, 12, 16, 20)
-        
-        // 1つ目の三角形 (左上、右上、左下)
-        cubeMesh.addIndexData(offset + 1, offset + 0, offset + 2); 
-        // 2つ目の三角形 (左上、右下、右上) ※時計回りまたは反時計回りで定義
-
-        // 左下、右上、右下
-        cubeMesh.addIndexData(offset + 2, offset + 0, offset + 3);
-
-        // ※一般的に (0, 1, 2), (2, 3, 0) と定義しますが、ここでは上の定義に合わせました。
-        // (0: 右上, 1: 左上, 2: 右下, 3: 左下) の場合:
-        // (1, 0, 2) と (1, 2, 3) が適切です。（面によっては順序が変わります）
-        
-        // 正しい定義（頂点の並び順に依存）
-        // 矩形を構成する4頂点を (v0, v1, v2, v3) とした場合、
-        // v0 --- v1
-        // |      |
-        // v2 --- v3
-        // の順なら (0, 2, 3), (0, 3, 1) または (1, 0, 2), (1, 2, 3)
-
-        // 今回の頂点定義順:
-        // [0]: 右上, [1]: 左上, [2]: 右下, [3]: 左下
-
-        // 1つ目の三角形 (右上(0), 左上(1), 左下(3))
-        // cubeMesh.addIndexData(offset + 0, offset + 1, offset + 3);
-
-        // 2つ目の三角形 (右上(0), 左下(3), 右下(2))
-        // cubeMesh.addIndexData(offset + 0, offset + 3, offset + 2);
-        
-        // 上記のインデックス定義をコメントアウトし、既存のコードに似た形式で定義
-        // (0, 1, 2) と (2, 1, 3) の組み合わせ
-        // cubeMesh.addIndexData(offset + 0, offset + 1, offset + 2); // 右上、左上、右下
-        // cubeMesh.addIndexData(offset + 2, offset + 1, offset + 3); // 右下、左上、左下
-
-        // ※最初の定義 (offset + 1, offset + 0, offset + 2) と (offset + 2, offset + 0, offset + 3) を使用します
-        // (1, 0, 2) と (2, 0, 3) - 面ごとに確認しながら調整してください。
-        // 多くの場合は (0, 1, 2) と (2, 3, 0) のような順序になります。
-        // 正面 (Z+) は、外側から見て反時計回りになるようにします。
-        // (1. 左上, 0. 右上, 2. 右下) と (1. 左上, 2. 右下, 3. 左下) が一般的
-        cubeMesh.addIndexData(offset + 1, offset + 0, offset + 2); // 左上, 右上, 右下
-        cubeMesh.addIndexData(offset + 1, offset + 2, offset + 3); // 左上, 右下, 左下
     }
 
 
-    // モデルをビルド
-    cubeMesh.buildMesh(wgl);
 
-    //テクスチャーをセット
-    cubeMesh.setTextureKey(triangleTextureKey);
+    {
+
+        // 床は X軸に沿って -20.0 から 20.0 (40ブロック)
+        // Z軸に沿って -20.0 から 20.0 (40ブロック) の範囲
+        const size = 40; // ブロックの数 (X, Z 各方向)
+        const halfSize = size / 2; // 中心からのオフセット
+
+        let indexCounter = 0; // 頂点インデックスのカウンター
+
+        // Y座標は常に 0.0 (平らな床)
+        const y = 0.0;
+
+        // 法線は常に (0.0, 1.0, 0.0) (上向き)
+        const normal = [0.0, 1.0, 0.0];
+        // ボーンデータは不要なためデフォルト値
+        const boneIDs = [0.0, 0.0, 0.0, 0.0];
+        const boneWeights = [0.0, 0.0, 0.0, 0.0];
+
+
+        // Z軸 (-halfSize から halfSize) に沿ってループ
+        for (let z = -halfSize; z < halfSize; z++) {
+            // X軸 (-halfSize から halfSize) に沿ってループ
+            for (let x = -halfSize; x < halfSize; x++) {
+
+                // 現在のブロックの左下隅のワールド座標
+                const x0 = x * 1.0;
+                const z0 = z * 1.0;
+                // 現在のブロックの右上隅のワールド座標
+                const x1 = (x + 1) * 1.0;
+                const z1 = (z + 1) * 1.0;
+
+                // 頂点座標 (x, z) に対応する Y 座標を計算
+                const y00 = calculateHeight(x0, z0); // 左下
+                const y10 = calculateHeight(x1, z0); // 右下
+                const y01 = calculateHeight(x0, z1); // 左上
+                const y11 = calculateHeight(x1, z1); // 右上
+
+                // 各頂点の法線を計算
+                const n00 = calculateNormal(x0, z0);
+                const n10 = calculateNormal(x1, z0);
+                const n01 = calculateNormal(x0, z1);
+                const n11 = calculateNormal(x1, z1);
+
+
+                // ----------------------------------------------------
+                // 1ブロック（2つの三角形）の頂点データを追加
+                // 頂点順序：左下、右下、左上、右上 (時計回り、y=0面を上から見た場合)
+                // ----------------------------------------------------
+
+                // 1. 左下 (P0)
+                floorMesh.addVertexData({
+                    position: [x0, y00, z0],
+                    uv: [0.0, 1.0], // U:0.0, V:1.0 (UVの左下)
+                    normal: n00,
+                    boneIDs: boneIDs,
+                    boneWeights: boneWeights
+                });
+
+                // 2. 右下 (P1)
+                floorMesh.addVertexData({
+                    position: [x1, y10, z0],
+                    uv: [1.0, 1.0], // U:1.0, V:1.0 (UVの右下)
+                    normal: n10,
+                    boneIDs: boneIDs,
+                    boneWeights: boneWeights
+                });
+
+                // 3. 左上 (P2)
+                floorMesh.addVertexData({
+                    position: [x0, y01, z1],
+                    uv: [0.0, 0.0], // U:0.0, V:0.0 (UVの左上)
+                    normal: n01,
+                    boneIDs: boneIDs,
+                    boneWeights: boneWeights
+                });
+
+                // 4. 右上 (P3)
+                floorMesh.addVertexData({
+                    position: [x1, y11, z1],
+                    uv: [1.0, 0.0], // U:1.0, V:0.0 (UVの右上)
+                    normal: n11,
+                    boneIDs: boneIDs,
+                    boneWeights: boneWeights
+                });
+
+                // ----------------------------------------------------
+                // インデックスデータを追加
+                // 1ブロックはP0, P1, P2, P3の4頂点からなる四角形で、2つの三角形で構成
+                // ----------------------------------------------------
+                // T1: P0 (左下), P2 (左上), P1 (右下)
+                floorMesh.addIndexData(indexCounter + 0, indexCounter + 2, indexCounter + 1);
+
+                // T2: P1 (右下), P2 (左上), P3 (右上)
+                floorMesh.addIndexData(indexCounter + 1, indexCounter + 2, indexCounter + 3);
+
+                // 次のブロックのためにインデックスカウンターを4増やす
+                indexCounter += 4;
+            }
+        }
+
+        // モデルをビルド
+        floorMesh.buildMesh(wgl);
+
+        //テクスチャーをセット
+        floorMesh.setTextureKey(floorTextureKey);
+    }
+
+
+    messageArea.textContent = `loading: 60 %`;
+
+
+
+
+    //自然用のテクスチャー
+    const natureTextureKey = "nature_texture_key";
+    res = await wgl.textureManager.loadAndRegister(natureTextureKey, './gltf/texture_gradient.png');
+
+
+
+    //木001 の生成　ーーーーーーーーーーーーー
+
+    //glTFロード
+    const tree_meshDataList = await wgl.gltfParser.loadModel('./gltf/tree001.gltf');
+
+
+    //3Dモデル作成
+    let treeMesh001 = new SolaMesh(this);
+
+    {
+        treeMesh001.setMeshDataList(tree_meshDataList);
+        // モデルをビルド
+        treeMesh001.buildMesh(wgl);
+        treeMesh001.setScale(1.0, 1.0, 1.0);
+
+        //テクスチャーをセット
+        treeMesh001.setTextureKey(natureTextureKey);
+
+    }
+
+
+    const tree001_posArray = []; // 可変長の配列を初期化 (pushでデータ数を可変にする)
+
+    // ノイズを生成
+    const rng = new solaRandomGenerator();
+    rng.setSeed(12345);
+
+    const floorSize = 20.0;
+    for (i=0; i<15; i++) {
+
+            let r = rng.getRandom();//0.0 - 1.0
+            let x = (r - 0.5) * floorSize * 2.0;
+
+            r = rng.getRandom();//0.0 - 1.0
+            let z = (r - 0.5) * floorSize * 2.0;
+
+            let y = calculateHeight(x, z);
+
+            r = rng.getRandom();//0.0 - 1.0
+            let rot = r * 360.0;
+
+            tree001_posArray.push({x: x, y: y, z: z, rot : rot});
+    }
+
+
+    //木002 の生成　ーーーーーーーーーーーーー
+
+    //glTFロード
+    const tree002_meshDataList = await wgl.gltfParser.loadModel('./gltf/tree002.gltf');
+
+
+    //3Dモデル作成
+    let treeMesh002 = new SolaMesh(this);
+
+    {
+        treeMesh002.setMeshDataList(tree002_meshDataList);
+        // モデルをビルド
+        treeMesh002.buildMesh(wgl);
+        treeMesh002.setScale(1.0, 1.0, 1.0);
+
+        //テクスチャーをセット
+        treeMesh002.setTextureKey(natureTextureKey);
+
+    }
+
+
+    const tree002_posArray = []; // 可変長の配列を初期化 (pushでデータ数を可変にする)
+
+    // ノイズを生成
+    rng.setSeed(557);
+
+    for (i=0; i<15; i++) {
+
+            let r = rng.getRandom();//0.0 - 1.0
+            let x = (r - 0.5) * floorSize * 2.0;
+
+            r = rng.getRandom();//0.0 - 1.0
+            let z = (r - 0.5) * floorSize * 2.0;
+
+            let y = calculateHeight(x, z);
+
+            r = rng.getRandom();//0.0 - 1.0
+            let rot = r * 360.0;
+
+            tree002_posArray.push({x: x, y: y, z: z, rot : rot});
+    }
+
+
+
+    //石001 の生成　ーーーーーーーーーーーーー
+
+    //glTFロード
+    const stone001_meshDataList = await wgl.gltfParser.loadModel('./gltf/stone001.gltf');
+
+
+    //3Dモデル作成
+    let stoneMesh001 = new SolaMesh(this);
+
+    {
+        stoneMesh001.setMeshDataList(stone001_meshDataList);
+        // モデルをビルド
+        stoneMesh001.buildMesh(wgl);
+        stoneMesh001.setScale(1.0, 1.0, 1.0);
+
+        //テクスチャーをセット
+        stoneMesh001.setTextureKey(natureTextureKey);
+
+    }
+
+
+    const stone001_posArray = []; // 可変長の配列を初期化 (pushでデータ数を可変にする)
+
+    // ノイズを生成
+    rng.setSeed(963);
+
+    for (i=0; i<30; i++) {
+
+            let r = rng.getRandom();//0.0 - 1.0
+            let x = (r - 0.5) * floorSize * 2.0;
+
+            r = rng.getRandom();//0.0 - 1.0
+            let z = (r - 0.5) * floorSize * 2.0;
+
+            let y = calculateHeight(x, z);
+
+            r = rng.getRandom();//0.0 - 1.0
+            let rot = r * 360.0;
+
+            stone001_posArray.push({x: x, y: y, z: z, rot : rot});
+    }
+
+    //草001 の生成　ーーーーーーーーーーーーー
+
+    //glTFロード
+    const grass001_meshDataList = await wgl.gltfParser.loadModel('./gltf/grass001.gltf');
+
+
+    //3Dモデル作成
+    let grassMesh001 = new SolaMesh(this);
+
+    {
+        grassMesh001.setMeshDataList(grass001_meshDataList);
+        // モデルをビルド
+        grassMesh001.buildMesh(wgl);
+        grassMesh001.setScale(1.0, 1.0, 1.0);
+
+        //テクスチャーをセット
+        grassMesh001.setTextureKey(natureTextureKey);
+
+    }
+
+
+    const grass001_posArray = []; // 可変長の配列を初期化 (pushでデータ数を可変にする)
+
+    // ノイズを生成
+    rng.setSeed(1379);
+
+    for (i=0; i<200; i++) {
+
+            let r = rng.getRandom();//0.0 - 1.0
+            let x = (r - 0.5) * floorSize * 2.0;
+
+            r = rng.getRandom();//0.0 - 1.0
+            let z = (r - 0.5) * floorSize * 2.0;
+
+            let y = calculateHeight(x, z);
+
+            r = rng.getRandom();//0.0 - 1.0
+            let rot = r * 360.0;
+
+            grass001_posArray.push({x: x, y: y, z: z, rot : rot});
+    }
 
 
 
 
 
 
+
+
+
+    let sphereMesh = new SolaMesh(this);
+
+    {
+
+        // 半径
+        const radius = 100.0; // 一般的なシーンで扱いやすいサイズ
+
+        // 経度方向（X-Z平面の円周）の分割数
+        // 32または64が一般的。この値が大きいほど、水平方向が滑らかになる。
+        const segmentsX = 32;
+
+        // 緯度方向（Y軸の上下）の分割数
+        // 16または32が一般的。この値が大きいほど、垂直方向が滑らかになる。
+        const segmentsY = 16;
+
+        // ボーンデータは不要なためデフォルト値
+        const boneIDs = [0.0, 0.0, 0.0, 0.0];
+        const boneWeights = [0.0, 0.0, 0.0, 0.0];
+
+        // 頂点とインデックスを格納する一時配列
+        let positions = [];
+        let uvs = [];
+        let normals = [];
+        let indices = [];
+
+        // ----------------------------------------------------
+        // 頂点データの生成
+        // ----------------------------------------------------
+        for (let y = 0; y <= segmentsY; y++) {
+            const theta = y * Math.PI / segmentsY; // 緯度 (0 to PI)
+            const sinTheta = Math.sin(theta);
+            const cosTheta = Math.cos(theta);
+
+            for (let x = 0; x <= segmentsX; x++) {
+                const phi = x * 2 * Math.PI / segmentsX; // 経度 (0 to 2*PI)
+                const sinPhi = Math.sin(phi);
+                const cosPhi = Math.cos(phi);
+
+                // 頂点座標 (x, y, z)
+                const px = radius * sinTheta * cosPhi;
+                const py = radius * cosTheta;
+                const pz = radius * sinTheta * sinPhi;
+                positions.push(px, py, pz);
+
+                // UV座標
+                // U: 経度方向 (0 to 1)
+                // V: 緯度方向 (0 to 1)
+                const u = 1 - (x / segmentsX); // テクスチャの巻き付け方向を考慮して反転
+                const v = y / segmentsY;
+                uvs.push(u, v);
+
+                // 法線ベクトル (内側に向けるため、外側への法線を反転)
+                nx = -sinTheta * cosPhi;
+                ny = -cosTheta;
+                nz = -sinTheta * sinPhi;
+
+                nx = 0;
+                ny = 1;
+                nz = 0;
+
+                normals.push(nx, ny, nz);
+
+                // SolaMesh.addVertexDataに直接渡すのではなく、一時配列に蓄積
+                // これにより、SolaMeshのaddVertexDataが大量に呼ばれるのを避ける
+                // もしSolaMeshが直接頂点配列を受け取れない場合は、下のループでaddVertexDataを呼ぶ
+            }
+        }
+
+        // 頂点データを SolaMesh に追加
+        let currentVertexIndex = 0;
+        for (let i = 0; i < positions.length; i += 3) {
+            sphereMesh.addVertexData({
+                position: [positions[i], positions[i + 1], positions[i + 2]],
+                uv: [uvs[currentVertexIndex * 2], uvs[currentVertexIndex * 2 + 1]],
+                normal: [normals[i], normals[i + 1], normals[i + 2]],
+                boneIDs: boneIDs,
+                boneWeights: boneWeights
+            });
+            currentVertexIndex++;
+        }
+
+
+        // ----------------------------------------------------
+        // インデックスデータの生成
+        // ----------------------------------------------------
+        for (let y = 0; y < segmentsY; y++) {
+            for (let x = 0; x < segmentsX; x++) {
+                // 現在のクワッドの4つの頂点インデックス
+                const p0 = (y * (segmentsX + 1)) + x;          // 左下
+                const p1 = (y * (segmentsX + 1)) + x + 1;      // 右下
+                const p2 = ((y + 1) * (segmentsX + 1)) + x;      // 左上
+                const p3 = ((y + 1) * (segmentsX + 1)) + x + 1;  // 右上
+
+                // 2つの三角形で四角形を構成（内側から見るため、頂点順序を時計回りにする）
+                // T1: P0 -> P1 -> P2 (左下、右下、左上)
+                sphereMesh.addIndexData(p0, p1, p2);
+
+                // T2: P1 -> P3 -> P2 (右下、右上、左上)
+                sphereMesh.addIndexData(p1, p3, p2);
+            }
+        }
+
+        // モデルをビルド
+        sphereMesh.buildMesh(wgl);
+
+        sphereMesh.setTextureKey(sphereTextureKey);
+
+    }
+
+
+
+    messageArea.textContent = `loading: 70 %`;
+
+
+
+    //四角モデル作成
+
+    let cubeMesh = new SolaMesh(this);
+
+    {
+        // 頂点データ
+        // 立方体は6面で構成され、各面は2つの三角形（4つの頂点）で構成されます。
+        // 面ごとに法線とUV座標を正しく設定するため、頂点は重複して定義します。（合計 6面 * 4頂点 = 24頂点）
+
+        // 頂点データ: { position: [x, y, z], uv: [u, v], normal: [nx, ny, nz], ... }
+        // boneIDs/boneWeights はスケルタルアニメーション用ですが、今回は全て 0.0 で固定
+        const boneData = { boneIDs: [0.0, 0.0, 0.0, 0.0], boneWeights: [0.0, 0.0, 0.0, 0.0] };
+
+        // -----------------------------------------------------------
+        // 1. 正面 (Front: Z+)
+        // -----------------------------------------------------------
+        // A: 右上 (1, 1, 1)
+        cubeMesh.addVertexData({ position: [ 1.0,  1.0,  1.0 ], uv: [ 1.0, 0.0 ], normal: [ 0.0, 0.0, 1.0 ], ...boneData });
+        // B: 左上 (-1, 1, 1)
+        cubeMesh.addVertexData({ position: [-1.0,  1.0,  1.0 ], uv: [ 0.0, 0.0 ], normal: [ 0.0, 0.0, 1.0 ], ...boneData });
+        // C: 右下 (1, -1, 1)
+        cubeMesh.addVertexData({ position: [ 1.0, -1.0,  1.0 ], uv: [ 1.0, 1.0 ], normal: [ 0.0, 0.0, 1.0 ], ...boneData });
+        // D: 左下 (-1, -1, 1)
+        cubeMesh.addVertexData({ position: [-1.0, -1.0,  1.0 ], uv: [ 0.0, 1.0 ], normal: [ 0.0, 0.0, 1.0 ], ...boneData });
+
+        // -----------------------------------------------------------
+        // 2. 背面 (Back: Z-)
+        // -----------------------------------------------------------
+        // E: 左上 (-1, 1, -1)
+        cubeMesh.addVertexData({ position: [-1.0,  1.0, -1.0 ], uv: [ 1.0, 0.0 ], normal: [ 0.0, 0.0, -1.0 ], ...boneData });
+        // F: 右上 (1, 1, -1)
+        cubeMesh.addVertexData({ position: [ 1.0,  1.0, -1.0 ], uv: [ 0.0, 0.0 ], normal: [ 0.0, 0.0, -1.0 ], ...boneData });
+        // G: 左下 (-1, -1, -1)
+        cubeMesh.addVertexData({ position: [-1.0, -1.0, -1.0 ], uv: [ 1.0, 1.0 ], normal: [ 0.0, 0.0, -1.0 ], ...boneData });
+        // H: 右下 (1, -1, -1)
+        cubeMesh.addVertexData({ position: [ 1.0, -1.0, -1.0 ], uv: [ 0.0, 1.0 ], normal: [ 0.0, 0.0, -1.0 ], ...boneData });
+
+        // -----------------------------------------------------------
+        // 3. 右面 (Right: X+)
+        // -----------------------------------------------------------
+        // A: 右上(前) (1, 1, 1)
+        cubeMesh.addVertexData({ position: [ 1.0,  1.0,  1.0 ], uv: [ 0.0, 0.0 ], normal: [ 1.0, 0.0, 0.0 ], ...boneData });
+        // F: 右上(奥) (1, 1, -1)
+        cubeMesh.addVertexData({ position: [ 1.0,  1.0, -1.0 ], uv: [ 1.0, 0.0 ], normal: [ 1.0, 0.0, 0.0 ], ...boneData });
+        // C: 右下(前) (1, -1, 1)
+        cubeMesh.addVertexData({ position: [ 1.0, -1.0,  1.0 ], uv: [ 0.0, 1.0 ], normal: [ 1.0, 0.0, 0.0 ], ...boneData });
+        // H: 右下(奥) (1, -1, -1)
+        cubeMesh.addVertexData({ position: [ 1.0, -1.0, -1.0 ], uv: [ 1.0, 1.0 ], normal: [ 1.0, 0.0, 0.0 ], ...boneData });
+
+        // -----------------------------------------------------------
+        // 4. 左面 (Left: X-)
+        // -----------------------------------------------------------
+        // B: 左上(前) (-1, 1, 1)
+        cubeMesh.addVertexData({ position: [-1.0,  1.0,  1.0 ], uv: [ 1.0, 0.0 ], normal: [-1.0, 0.0, 0.0 ], ...boneData });
+        // E: 左上(奥) (-1, 1, -1)
+        cubeMesh.addVertexData({ position: [-1.0,  1.0, -1.0 ], uv: [ 0.0, 0.0 ], normal: [-1.0, 0.0, 0.0 ], ...boneData });
+        // D: 左下(前) (-1, -1, 1)
+        cubeMesh.addVertexData({ position: [-1.0, -1.0,  1.0 ], uv: [ 1.0, 1.0 ], normal: [-1.0, 0.0, 0.0 ], ...boneData });
+        // G: 左下(奥) (-1, -1, -1)
+        cubeMesh.addVertexData({ position: [-1.0, -1.0, -1.0 ], uv: [ 0.0, 1.0 ], normal: [-1.0, 0.0, 0.0 ], ...boneData });
+
+        // -----------------------------------------------------------
+        // 5. 上面 (Top: Y+)
+        // -----------------------------------------------------------
+        // B: 左上(前) (-1, 1, 1)
+        cubeMesh.addVertexData({ position: [-1.0,  1.0,  1.0 ], uv: [ 0.0, 1.0 ], normal: [ 0.0, 1.0, 0.0 ], ...boneData });
+        // A: 右上(前) (1, 1, 1)
+        cubeMesh.addVertexData({ position: [ 1.0,  1.0,  1.0 ], uv: [ 1.0, 1.0 ], normal: [ 0.0, 1.0, 0.0 ], ...boneData });
+        // E: 左上(奥) (-1, 1, -1)
+        cubeMesh.addVertexData({ position: [-1.0,  1.0, -1.0 ], uv: [ 0.0, 0.0 ], normal: [ 0.0, 1.0, 0.0 ], ...boneData });
+        // F: 右上(奥) (1, 1, -1)
+        cubeMesh.addVertexData({ position: [ 1.0,  1.0, -1.0 ], uv: [ 1.0, 0.0 ], normal: [ 0.0, 1.0, 0.0 ], ...boneData });
+
+        // -----------------------------------------------------------
+        // 6. 底面 (Bottom: Y-)
+        // -----------------------------------------------------------
+        // D: 左下(前) (-1, -1, 1)
+        cubeMesh.addVertexData({ position: [-1.0, -1.0,  1.0 ], uv: [ 0.0, 0.0 ], normal: [ 0.0, -1.0, 0.0 ], ...boneData });
+        // C: 右下(前) (1, -1, 1)
+        cubeMesh.addVertexData({ position: [ 1.0, -1.0,  1.0 ], uv: [ 1.0, 0.0 ], normal: [ 0.0, -1.0, 0.0 ], ...boneData });
+        // G: 左下(奥) (-1, -1, -1)
+        cubeMesh.addVertexData({ position: [-1.0, -1.0, -1.0 ], uv: [ 0.0, 1.0 ], normal: [ 0.0, -1.0, 0.0 ], ...boneData });
+        // H: 右下(奥) (1, -1, -1)
+        cubeMesh.addVertexData({ position: [ 1.0, -1.0, -1.0 ], uv: [ 1.0, 1.0 ], normal: [ 0.0, -1.0, 0.0 ], ...boneData });
+
+
+        // インデックスデータ
+        // 頂点インデックスは0から始まり、面ごとに 4 ずつ増加します。
+        // 各面は2つの三角形で構成されます: (0, 1, 2) と (2, 1, 3) (または (0, 2, 3) と (0, 3, 1) など)
+
+        for (let i = 0; i < 6; i++) {
+            const offset = i * 4; // 各面の開始インデックス (0, 4, 8, 12, 16, 20)
+            
+            // 1つ目の三角形 (左上、右上、左下)
+            cubeMesh.addIndexData(offset + 1, offset + 0, offset + 2); 
+            // 2つ目の三角形 (左上、右下、右上) ※時計回りまたは反時計回りで定義
+
+            // 左下、右上、右下
+            cubeMesh.addIndexData(offset + 2, offset + 0, offset + 3);
+
+            // ※一般的に (0, 1, 2), (2, 3, 0) と定義しますが、ここでは上の定義に合わせました。
+            // (0: 右上, 1: 左上, 2: 右下, 3: 左下) の場合:
+            // (1, 0, 2) と (1, 2, 3) が適切です。（面によっては順序が変わります）
+            
+            // 正しい定義（頂点の並び順に依存）
+            // 矩形を構成する4頂点を (v0, v1, v2, v3) とした場合、
+            // v0 --- v1
+            // |      |
+            // v2 --- v3
+            // の順なら (0, 2, 3), (0, 3, 1) または (1, 0, 2), (1, 2, 3)
+
+            // 今回の頂点定義順:
+            // [0]: 右上, [1]: 左上, [2]: 右下, [3]: 左下
+
+            // 1つ目の三角形 (右上(0), 左上(1), 左下(3))
+            // cubeMesh.addIndexData(offset + 0, offset + 1, offset + 3);
+
+            // 2つ目の三角形 (右上(0), 左下(3), 右下(2))
+            // cubeMesh.addIndexData(offset + 0, offset + 3, offset + 2);
+            
+            // 上記のインデックス定義をコメントアウトし、既存のコードに似た形式で定義
+            // (0, 1, 2) と (2, 1, 3) の組み合わせ
+            // cubeMesh.addIndexData(offset + 0, offset + 1, offset + 2); // 右上、左上、右下
+            // cubeMesh.addIndexData(offset + 2, offset + 1, offset + 3); // 右下、左上、左下
+
+            // ※最初の定義 (offset + 1, offset + 0, offset + 2) と (offset + 2, offset + 0, offset + 3) を使用します
+            // (1, 0, 2) と (2, 0, 3) - 面ごとに確認しながら調整してください。
+            // 多くの場合は (0, 1, 2) と (2, 3, 0) のような順序になります。
+            // 正面 (Z+) は、外側から見て反時計回りになるようにします。
+            // (1. 左上, 0. 右上, 2. 右下) と (1. 左上, 2. 右下, 3. 左下) が一般的
+            cubeMesh.addIndexData(offset + 1, offset + 0, offset + 2); // 左上, 右上, 右下
+            cubeMesh.addIndexData(offset + 1, offset + 2, offset + 3); // 左上, 右下, 左下
+        }
+
+
+        // モデルをビルド
+        cubeMesh.buildMesh(wgl);
+
+        //テクスチャーをセット
+        cubeMesh.setTextureKey(triangleTextureKey);
+
+    }
+
+
+
+    messageArea.textContent = `loading: 80 %`;
 
 
 
@@ -315,30 +912,33 @@ window.addEventListener('DOMContentLoaded', async () => { //読み込み完了�
 
     let triangleMesh = new SolaMesh(this);
 
-    //頂点
-    triangleMesh.addVertexData({
-            position: [ 0.0,  1.0, 0.0 ], uv: [ 0.5, 0.0 ], normal: [ 0.0, 0.0, 1.0 ],
-            boneIDs: [0.0, 0.0, 0.0, 0.0], boneWeights: [0.0, 0.0, 0.0, 0.0]
-        });
-    triangleMesh.addVertexData({
-            position: [ -1.0, -1.0, 0.0 ], uv: [ 0.0, 1.0 ], normal: [ 0.0, 0.0, 1.0 ],
-            boneIDs: [0.0, 0.0, 0.0, 0.0], boneWeights: [0.0, 0.0, 0.0, 0.0]
-        });
-    triangleMesh.addVertexData({
-            position: [ 1.0, -1.0, 0.0 ], uv: [ 1.0, 1.0 ], normal: [ 0.0, 0.0, 1.0 ],
-            boneIDs: [0.0, 0.0, 0.0, 0.0], boneWeights: [0.0, 0.0, 0.0, 0.0]
-        });
+    {
+        //頂点
+        triangleMesh.addVertexData({
+                position: [ 0.0,  1.0, 0.0 ], uv: [ 0.5, 0.0 ], normal: [ 0.0, 0.0, 1.0 ],
+                boneIDs: [0.0, 0.0, 0.0, 0.0], boneWeights: [0.0, 0.0, 0.0, 0.0]
+            });
+        triangleMesh.addVertexData({
+                position: [ -1.0, -1.0, 0.0 ], uv: [ 0.0, 1.0 ], normal: [ 0.0, 0.0, 1.0 ],
+                boneIDs: [0.0, 0.0, 0.0, 0.0], boneWeights: [0.0, 0.0, 0.0, 0.0]
+            });
+        triangleMesh.addVertexData({
+                position: [ 1.0, -1.0, 0.0 ], uv: [ 1.0, 1.0 ], normal: [ 0.0, 0.0, 1.0 ],
+                boneIDs: [0.0, 0.0, 0.0, 0.0], boneWeights: [0.0, 0.0, 0.0, 0.0]
+            });
 
-    //インデックス
-    triangleMesh.addIndexData(0, 1, 2);
+        //インデックス
+        triangleMesh.addIndexData(0, 1, 2);
 
-    //モデルをビルド
-    triangleMesh.buildMesh(wgl);
+        //モデルをビルド
+        triangleMesh.buildMesh(wgl);
 
 
-    //テクスチャーをセット
-    triangleMesh.setTextureKey(triangleTextureKey);
+        //テクスチャーをセット
+        triangleMesh.setTextureKey(triangleTextureKey);
+    }
 
+    messageArea.textContent = `loading: 100 %`;
 
 
     wgl.setFpsLimit(80);
@@ -356,10 +956,24 @@ window.addEventListener('DOMContentLoaded', async () => { //読み込み完了�
     //let wasAPressed = false; 
 
 
+
+    //変数初期化
+
     
     let gameCounter = 0.0;
+    let dayCounter = 0.0;
 
 
+    let charaPos = {x: 0.0, y: 0.0, z: 0.0};
+    let charaRot = {x: 0.0, y: 0.0, z: 0.0};
+    let charaAcc = {x: 0.0, y: 0.0, z: 0.0};
+
+    let cameraRot = {x: 0.0, y: 0.0, z: 0.0};
+
+    let isOnGround = false;
+
+
+    //ループ
     const render = () => {
 
         /*
@@ -389,49 +1003,133 @@ window.addEventListener('DOMContentLoaded', async () => { //読み込み完了�
 
         if (flg_Update) {
 
-
-            
-
-
+            //DeltaTime
             const deltaTime = wgl.getDeltaTime();
 
-            const fps = wgl.getFps();
 
-                        // HTML要素を更新
-            if (fpsElement) {
-                fpsElement.textContent = `FPS: ${fps}`;
+            // HTML要素を更新
+            if (messageArea) {
+                const fps = wgl.getFps();
+                messageArea.textContent = `FPS: ${fps}`;
             }
 
+
+
+
+            //左スティック
             const stickL = wgl.inputManager.getStickValue('L', 0.15);
-            //triangleX = stickL.x;
-            //triangleY = -stickL.y; // WebGLのY軸は上が正なのでY軸を反転
-            
-            /*
-            if (stickL.x > 0.0 && stickL.y > 0.0) {
-                //console.log('Left Stick X:', stickL.x, 'Left Stick Y:', stickL.y);
+
+
+            let moveVal = {x: stickL.x, y: stickL.y};
+
+            if (wgl.inputManager.onPressKey('w')) {
+                moveVal.x = 0.0;
+                moveVal.y = -1.0;
+
+                //console.log(`vec f ${vecForward.x}, ${vecForward.y} , camerarot ${cameraRot.y} `);
+
+
             }
-    */
+            if (wgl.inputManager.onPressKey('s')) {
+                moveVal.x = 0.0;
+                moveVal.y = 1.0;
+            }
+            if (wgl.inputManager.onPressKey('d')) {
+                moveVal.x = 1.0;
+                moveVal.y = 0.0;
+            }
+            if (wgl.inputManager.onPressKey('a')) {
+                moveVal.x = -1.0;
+                moveVal.y = 0.0;
+            }
+
+            
+            //カメラから見た、前方ベクトル、右ベクトル
+            //let vecForward = { x: -Math.sin(-cameraRot.y * Math.PI / 180.0) , y: Math.cos(-cameraRot.y * Math.PI / 180.0) };
+            //let vecRight = { x: Math.cos(-cameraRot.y * Math.PI / 180.0) , y: Math.sin(-cameraRot.y * Math.PI / 180.0) };
+
+
+            let vecForward = { x: -Math.sin(cameraRot.y * Math.PI / 180.0) , y: -Math.cos(cameraRot.y * Math.PI / 180.0) };
+            let vecRight = { x:Math.cos(cameraRot.y * Math.PI / 180.0) , y: -Math.sin(cameraRot.y * Math.PI / 180.0) };
+
+            //0 0,-1    //1,0
+            //90 -1,0   //0,-1
+            //180 0,1   //-1,0
+            //270 1,0   //0,1
+
+            const walkSpeed = 10.0;
+
+            charaPos.x += vecForward.x * walkSpeed * deltaTime * (-moveVal.y);
+            charaPos.z += vecForward.y * walkSpeed * deltaTime * (-moveVal.y);
+
+            charaPos.x += vecRight.x * walkSpeed * deltaTime * moveVal.x;
+            charaPos.z += vecRight.y * walkSpeed * deltaTime * moveVal.x;
+
 
 
             // --- Aボタン入力チェック ---
+
+            let flg_jump = false;
             if (typeof BUTTONS !== 'undefined') { // BUTTONS定数が読み込まれているかチェック
                 const isAPressed = wgl.inputManager.getGamepadOnPush(BUTTONS.A);
 
                 if (isAPressed) {
-                    //wgl.soundManager.playSound(bgm001Key, 0.02, false);
-                    wgl.soundManager.playSound(sound003Key, 0.05, false);
-                }
-                // Aボタンが押された瞬間 (前回 false -> 今回 true) のみ処理を実行
-                //if (isAPressed && !wasAPressed) {
-                //if (isAPressed) {
-                //    alert("Aボタンが押されました！");
-                //}
 
-                // 次のフレームのために現在の状態を保持
-                //wasAPressed = isAPressed;
+
+                    flg_jump = true;
+
+
+                }
+
             }
 
-            //キー入力チェック
+            if (wgl.inputManager.onPushKey(' ')) {
+            //if (wgl.inputManager.onPressKey(' ')) {
+
+                flg_jump = true;
+
+            }
+
+            if (flg_jump){
+                if (isOnGround) {
+
+                    charaAcc.y = 0.3;
+                        //wgl.soundManager.playSound(bgm001Key, 0.02, false);
+                    wgl.soundManager.playSound(sound003Key, 0.05, false);
+
+                }
+            }
+
+            const gravity = 9.8 * 0.1;
+            charaAcc.y -= gravity * deltaTime;
+
+            charaPos.x += charaAcc.x;
+            charaPos.y += charaAcc.y;
+            charaPos.z += charaAcc.z;
+
+            //キャラクター接地
+            let charaFloorY = calculateHeight(charaPos.x, charaPos.z);
+            if (charaPos.y < charaFloorY) {
+                charaPos.y = charaFloorY;
+                charaAcc.y = 0.0;
+                isOnGround = true;
+            } else {
+                isOnGround = false;
+            }
+
+            //カメラ回転
+
+            let mouseDelta = wgl.inputManager.getMouseDelta();
+            const rotRate = 0.5;
+            cameraRot.y -= mouseDelta.x * rotRate;
+            cameraRot.x += mouseDelta.y * rotRate;
+
+            const stickR = wgl.inputManager.getStickValue('R', 0.15);
+            const stickRotRate = 5.0;
+            cameraRot.y -= stickR.x * stickRotRate;
+            cameraRot.x += stickR.y * stickRotRate;
+
+            //音楽再生
 
             if (wgl.inputManager.onPushKey('1')) {
                 wgl.soundManager.playMusic(bgm001Key, 0.02, true);
@@ -449,9 +1147,46 @@ window.addEventListener('DOMContentLoaded', async () => { //読み込み完了�
             gameCounter += 1.0 * deltaTime;
             //console.log(`cameraRot ${cameraRot}`);
 
-            wgl.setCameraAngle(-gameCounter * 10.0, Math.sin(gameCounter * 0.3) * 90.0, 0.0);
-            wgl.setCameraDistance(1.0);
+
+            //カメラ
+
+            wgl.setCameraTarget(charaPos.x, charaPos.y + 1.0, charaPos.z);
+
+            wgl.setCameraAngle(cameraRot.x, cameraRot.y, cameraRot.z);
+            wgl.setCameraDistance(8.0);
             wgl.calcCameraPosByDistanceAndAngles();
+
+            
+            let cameraPos = wgl.getCameraPosition();
+
+            let cameraFloorY = calculateHeight(cameraPos[0], cameraPos[2]);
+
+            const floorThreshold = 0.1;
+            if (cameraPos[1] < cameraFloorY + floorThreshold) {
+                cameraPos[1] = cameraFloorY + floorThreshold;
+                wgl.setCameraPosition(cameraPos[0], cameraPos[1], cameraPos[2]);
+            }
+
+
+
+
+            //wgl.setShaderGenericArray(0, 0, (Math.sin(gameCounter * 1.0) + 1.0) * 0.5);
+
+            //太陽の動き
+
+            dayCounter += 1.0 * deltaTime;
+
+            const wholedayTime = 24.0;
+            if (dayCounter > wholedayTime) {
+                dayCounter -= wholedayTime;
+            }
+
+            let lx = Math.sin(Math.PI * 2.0 * dayCounter / wholedayTime);
+            let ly = -Math.cos(Math.PI * 2.0 * dayCounter / wholedayTime);
+
+            wgl.setLightDirection(lx, ly, 0.0);
+
+//wgl.setLightDirection(0.0, -1.0, 0.0);
 
             wgl.useShaderProgram("Default");
 
@@ -459,23 +1194,54 @@ window.addEventListener('DOMContentLoaded', async () => { //読み込み完了�
 
             //triangleMesh.draw(wgl);
             
+            //キャラクター
+            gltfMesh.setScale(10.0, 10.0, 10.0);
+            gltfMesh.setPosition(charaPos.x, charaPos.y, charaPos.z);
+            gltfMesh.setRotation(charaRot.x, charaRot.y, charaRot.z);
+            gltfMesh.draw(wgl);
+
             
-            cubeMesh.setScale(0.1, 0.1, 0.1);
-            cubeMesh.setPosition(0.3 * Math.sin(gameCounter), 0.0, 0.3 * Math.cos(gameCounter));
-            cubeMesh.setRotation(0.0, gameCounter * 5.0, 0.0);
+            //cubeMesh.setScale(0.1, 0.1, 0.1);
+            cubeMesh.setPosition(5.0 * Math.sin(gameCounter * 0.3), 4.0, 5.0 * Math.cos(gameCounter * 0.3));
+            cubeMesh.setRotation(gameCounter * 30.0, gameCounter * 50.0, gameCounter * 20.0);
             cubeMesh.draw(wgl);
 
 
-            gltfMesh.setScale(1.0, 1.0, 1.0);
-            gltfMesh.setPosition(0.0, 0.0, 0.0);
-            gltfMesh.setRotation(0.0, gameCounter * 45.0, 0.0);
-            gltfMesh.draw(wgl);
 
-            gltfMesh.setScale(1.0, 1.0, 1.0);
-            gltfMesh.setPosition(0.2, 0.0, 0.0);
-            gltfMesh.setRotation(0.0, -gameCounter * 145.0, 0.0);
-            gltfMesh.draw(wgl);
 
+            floorMesh.draw(wgl);
+
+            //tree001
+            for (i=0; i<tree001_posArray.length; i++) {
+                treeMesh001.setPosition(tree001_posArray[i].x, tree001_posArray[i].y, tree001_posArray[i].z);
+                treeMesh001.setRotation(0.0, tree001_posArray[i].rot, 0.0);
+                treeMesh001.setScale(0.5, 0.5, 0.5);
+                treeMesh001.draw(wgl);
+            }
+            //tree002
+            for (i=0; i<tree002_posArray.length; i++) {
+                treeMesh002.setPosition(tree002_posArray[i].x, tree002_posArray[i].y, tree002_posArray[i].z);
+                treeMesh002.setRotation(0.0, tree002_posArray[i].rot, 0.0);
+                treeMesh002.setScale(0.5, 0.5, 0.5);
+                treeMesh002.draw(wgl);
+            }
+            //stone001
+            for (i=0; i<stone001_posArray.length; i++) {
+                stoneMesh001.setPosition(stone001_posArray[i].x, stone001_posArray[i].y, stone001_posArray[i].z);
+                stoneMesh001.setRotation(0.0, stone001_posArray[i].rot, 0.0);
+                stoneMesh001.setScale(0.3, 0.3, 0.3);
+                stoneMesh001.draw(wgl);
+            }
+            //grass001
+            for (i=0; i<grass001_posArray.length; i++) {
+                grassMesh001.setPosition(grass001_posArray[i].x, grass001_posArray[i].y, grass001_posArray[i].z);
+                grassMesh001.setRotation(0.0, grass001_posArray[i].rot, 0.0);
+                grassMesh001.setScale(0.3, 0.3, 0.3);
+                grassMesh001.draw(wgl);
+            }
+
+            //空
+            sphereMesh.draw(wgl);
 
 
 

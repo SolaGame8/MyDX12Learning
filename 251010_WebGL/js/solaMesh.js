@@ -180,7 +180,14 @@ class SolaMesh {
                 tempBoneWeight[2] = vertexData[offset + 16];
                 tempBoneWeight[2] = vertexData[offset + 17];
 
-
+                /*
+                if (i < 10) {
+                    
+                    console.log(`      UV: (${u.toFixed(2)}, ${v.toFixed(2)}), Normal: (${nx.toFixed(2)}, ${ny.toFixed(2)}, ${nz.toFixed(2)})`);
+                    console.log(`      JointID: [${joint0}, ${joint1}, ${joint2}, ${joint3}], Weight: [${weight0.toFixed(2)}, ${weight1.toFixed(2)}, ${weight2.toFixed(2)}, ${weight3.toFixed(2)}]`);
+                }
+                */
+               
                 // SolaMeshの addVertexData(data) に準拠したオブジェクトを作成し、呼び出す
                 this.addVertexData({
                     position: tempPosition,
@@ -329,9 +336,9 @@ class SolaMesh {
 
         // 3. 回転を適用 (R) - XYZの順で適用
         // mat4.rotate*(out, a, rad) : out = a * R
-        if (this.rotation[0] !== 0) { mat4.rotateX(modelMatrix, modelMatrix, this.rotation[0]); }
         if (this.rotation[1] !== 0) { mat4.rotateY(modelMatrix, modelMatrix, this.rotation[1]); }
         if (this.rotation[2] !== 0) { mat4.rotateZ(modelMatrix, modelMatrix, this.rotation[2]); }
+        if (this.rotation[0] !== 0) { mat4.rotateX(modelMatrix, modelMatrix, this.rotation[0]); }
         
 
 
@@ -456,7 +463,7 @@ class SolaMesh {
             const modelMatrix = this.getModelMatrix();  //モデルの姿勢行列
             gl.uniformMatrix4fv(glHelper.uModelMatrixLocation, false, modelMatrix);
 
-
+            //三角形描画
             gl.drawElements(gl.TRIANGLES, this.indexDataUint16Array.length, this.gl.UNSIGNED_SHORT, 0); 
     
             // バインド解除

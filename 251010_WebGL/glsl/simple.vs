@@ -20,6 +20,7 @@ layout(location = 4) in vec4 a_boneWeight;  //ボーンウエイトをロケー�
 uniform mat4 u_vpMatrix; //View x Projection 行列
 uniform mat4 u_modelMatrix; //Model 行列
 
+uniform vec4 u_genericArray[16]; 
 
 
 //varying vec2 v_texcoord;      // UV情報をフラグメントシェーダーに渡す

@@ -48,17 +48,47 @@ class SolaInputManager {
 
         this.gamepads = {}; // 接続されているゲームパッドの状態を保持 { index: Gamepadオブジェクト }
 
+        // マウスの状態管理
+        this.isPointerLocked = false; 
+
+        this.currentMousePosition = { x: 0, y: 0 };
+        this.mouseDelta = { x: 0, y: 0 }; // フレーム内で累積される移動量
+
         // キー: Gamepad Index, 値: boolean[] (buttons.length)
         this.previousButtonStates = {}; 
         this.currentButtonStates = {}; 
 
-        // 【追加】キーボードの状態管理 (押された瞬間検知用)
+        // 【キーボードの状態管理 (押された瞬間検知用)
         // Key: キー名 (例: ' ', 'Enter') , Value: boolean (true = 押された瞬間があった)
         this.keyPushStates = new Map(); 
+
+        // Key: キー名 (例: 'w', 'a'), Value: boolean (true = 押されている)
+        this.keyPressStates = new Map();
+
 
         // キーイベントハンドラを登録
         this._keyHandlerDown = this._onKeyDown.bind(this);
         window.addEventListener('keydown', this._keyHandlerDown);
+
+        this._keyHandlerUp = this._onKeyUp.bind(this);
+        window.addEventListener('keyup', this._keyHandlerUp);
+
+
+        // マウスイベントハンドラを登録
+        this._mouseHandlerMove = this._onMouseMove.bind(this);
+        // windowでマウスを動かしたときだけ反応するようにします
+        window.addEventListener('mousemove', this._mouseHandlerMove);
+
+        // Pointer Lockイベントハンドラの登録
+        this._pointerLockChangeHandler = this._onPointerLockChange.bind(this);
+        document.addEventListener('pointerlockchange', this._pointerLockChangeHandler);
+        document.addEventListener('mozpointerlockchange', this._pointerLockChangeHandler);
+        document.addEventListener('webkitpointerlockchange', this._pointerLockChangeHandler);
+
+        // キャンバスへのクリックでロックを開始
+        this._canvasClickHandler = this.requestPointerLock.bind(this);
+        this.canvas.addEventListener('click', this._canvasClickHandler); // クリックでロック開始
+
 
 
         // ゲームパッド接続・切断イベントのリスナーを登録
@@ -76,7 +106,106 @@ class SolaInputManager {
         console.log("InputManager: キーボードイベントの監視を開始しました。");
     }
 
-    
+    /**
+     * canvas要素に対してPointer Lockを要求する。
+     */
+
+    requestPointerLock() {
+
+        this.canvas.requestPointerLock = this.canvas.requestPointerLock || 
+                                        this.canvas.mozRequestPointerLock || 
+                                        this.canvas.webkitRequestPointerLock;
+        
+        
+        if (this.canvas.requestPointerLock) {
+            this.canvas.requestPointerLock();
+            console.log("Pointer Lock: Requesting lock...");
+        } else {
+            console.warn("Pointer Lock: Browser does not support requestPointerLock.");
+        }
+        
+
+    }
+
+    /**
+     * Pointer Lockの状態が変更されたときに呼び出される。
+     */
+    _onPointerLockChange() {
+        const isLocked = document.pointerLockElement === this.canvas ||
+                        document.mozPointerLockElement === this.canvas ||
+                        document.webkitPointerLockElement === this.canvas;
+
+        
+        if (isLocked) {
+            this.isPointerLocked = true;
+            console.log("Pointer Lock: Activated. Mouse movement is now relative.");
+        } else {
+            this.isPointerLocked = false;
+            console.log("Pointer Lock: Deactivated. Cursor visible.");
+        }
+            
+
+    }
+
+
+    /**
+     * マウス移動イベントの処理。マウスの相対移動量を累積する。
+     * @param {MouseEvent} e 
+     */
+    _onMouseMove(e) {
+
+        // e.movementX, e.movementY を利用
+        const deltaX = e.movementX || 0; 
+        const deltaY = e.movementY || 0;
+
+        // 今回の移動量
+        this.mouseDelta.x = deltaX;
+        this.mouseDelta.y = deltaY;
+
+        // 現在のマウス座標も更新 (カーソルが表示されている場合に便利)
+        this.currentMousePosition.x = e.clientX;
+        this.currentMousePosition.y = e.clientY;
+
+        /*
+        // 【追加/修正】Pointer Lockが有効な場合、移動量のみを累積する（カーソル位置は更新しない）
+        if (this.isPointerLocked) {
+            this.mouseDelta.x += deltaX;
+            this.mouseDelta.y += deltaY;
+            
+            // Pointer Lock中はカーソル位置は固定されるため更新不要
+        } else {
+            // ロックされていない場合、通常のカーソル位置の更新のみ行う
+            // deltaX, deltaY はウィンドウ外に出ると不安定になるため、deltaの累積はPointer Lock時に限定するのが望ましい
+            this.currentMousePosition.x = e.clientX;
+            this.currentMousePosition.y = e.clientY;
+            
+            // ロックされていないときの移動量も累積したい場合は、ここに移動量累積のロジックを追加できますが、
+            // ゲームのカメラ操作などの用途であれば、ロック時のみを対象とすることを推奨します。
+        }
+            */
+
+    }
+
+    /**
+     * 直前のフレームからのマウスの移動量（デルタ）を取得する。
+     * 呼び出し後、次のフレームの update() でデルタはリセットされる。
+     * @returns {{x: number, y: number}} マウスの移動量
+     */
+    getMouseDelta() {
+        // 値渡し（オブジェクトのコピー）をする
+
+
+        let mDelta = { 
+            x: this.mouseDelta.x, 
+            y: this.mouseDelta.y 
+        };
+
+        this.mouseDelta.x = 0.0;
+        this.mouseDelta.y = 0.0;
+
+        return mDelta;
+    }
+
 
     // 監視対象キーの登録
     /**
@@ -87,6 +216,7 @@ class SolaInputManager {
         for (const key of keyNames) {
             // Map.set() は、キーが存在すれば上書き、存在しなければ追加を行います。
             this.keyPushStates.set(key, false);
+            this.keyPressStates.set(key, false);
         }
     }
 
@@ -99,6 +229,7 @@ class SolaInputManager {
         for (const key of keyNames) {
             // Map.delete() は、キーが存在すれば削除し、存在しなければ何もしません。
             this.keyPushStates.delete(key);
+            this.keyPressStates.delete(key);
         }
     }
 
@@ -290,7 +421,15 @@ class SolaInputManager {
     }
 
 
-
+    /**
+     * 指定されたキーが「押されている間」ずっと true を返す。
+     * @param {string} keyName - 判定したいキーの名前
+     * @returns {boolean} キーが押されていれば true
+     */
+    onPressKey(keyName) {
+        // 監視対象として登録されているかチェックし、状態を返す
+        return this.keyPressStates.get(keyName) || false;
+    }
 
 
 
@@ -301,7 +440,10 @@ class SolaInputManager {
 
     _onKeyDown(e) {
 
-        const key = e.key;
+        //const key = e.key;
+
+        // キーを小文字に統一 (大文字・小文字の区別をなくす)
+        const key = e.key.toLowerCase(); 
 
         // 既存のフルスクリーン切り替えロジック
         if (key === '\\' || key === '¥') { 
@@ -309,7 +451,7 @@ class SolaInputManager {
             e.preventDefault(); 
         }
 
-        // 【追加】監視対象のキーの状態を更新
+        // 監視対象のキーの状態を更新
         // 監視対象のキーかどうかをチェックし、まだ true でない場合のみ true に設定
         // （true に設定することで、onPushKeyの次の呼び出しで検知されるようになる）
 
@@ -317,9 +459,33 @@ class SolaInputManager {
             this.keyPushStates.set(key, true);
         }
 
-
+        // 継続状態を true に設定
+        if (this.keyPressStates.has(key)) {
+            this.keyPressStates.set(key, true);
+        }
 
     }
+
+
+    /**
+     * キーボードイベントの処理。キーが離されたときに呼び出される。
+     * @param {KeyboardEvent} e 
+     */
+
+    _onKeyUp(e) {
+
+        //const key = e.key;
+
+        // キーを小文字に統一 (大文字・小文字の区別をなくす)
+        const key = e.key.toLowerCase();
+
+        // 【継続状態を false に設定
+        if (this.keyPressStates.has(key)) {
+            this.keyPressStates.set(key, false);
+        }
+    }
+
+
 
     /**
      * フルスクリーン表示とウィンドウ表示を切り替える。
@@ -365,6 +531,32 @@ class SolaInputManager {
             window.removeEventListener('keydown', this._keyHandlerDown);
             this._keyHandlerDown = null;
         }
+        if (this._keyHandlerUp) {
+            window.removeEventListener('keyup', this._keyHandlerUp);
+            this._keyHandlerUp = null;
+        }
+
+
+        // マウスイベントの解除
+        if (this._mouseHandlerMove) {
+            window.removeEventListener('mousemove', this._mouseHandlerMove);
+            this._mouseHandlerMove = null;
+        }
+
+        // Pointer Lock関連のイベント解除
+        if (this._pointerLockChangeHandler) {
+            document.removeEventListener('pointerlockchange', this._pointerLockChangeHandler);
+            document.removeEventListener('mozpointerlockchange', this._pointerLockChangeHandler);
+            document.removeEventListener('webkitpointerlockchange', this._pointerLockChangeHandler);
+            this._pointerLockChangeHandler = null;
+        }
+        
+        if (this._canvasClickHandler) {
+            this.canvas.removeEventListener('click', this._canvasClickHandler);
+            this._canvasClickHandler = null;
+        }
+
+
         if (this._gamepadConnectedHandler) {
             window.removeEventListener("gamepadconnected", this._gamepadConnectedHandler);
             this._gamepadConnectedHandler = null;
@@ -379,6 +571,8 @@ class SolaInputManager {
         this.previousButtonStates = null;
 
         this.keyPushStates = null;
+        this.keyPressStates = null;
+
     }
 }
 

@@ -96,11 +96,36 @@ class SolaWGL {
         this.uVpMatrixLocation = null;      //カメラの行列
         this.uModelMatrixLocation = null;   //モデル座標
 
+        this.uGenericDataLocation = null;
+
+        this.uLightDirectionLocation = null;
+        this.uLightColorLocation = null;
+        this.uLightIntensityLocation = null;
+        this.uAmbientColorLocation = null;
+        this.uAmbientIntensityLocation = null;
+
+
 
         this.uSamplerLocation = null;   //テクスチャー
 
         // 現在使用中のプログラムを保持
         this.currentProgram = null; 
+
+
+
+
+        //汎用シェーダー変数
+        this.genericArray = new Float32Array(16 * 4);
+
+
+        //ライト
+        this.lightDirection = new Float32Array([-0.5, 1.0, 0.5]);
+        this.lightColor = new Float32Array([1.0, 1.0, 0.8]);
+        this.lightIntensity = 1.8;
+        this.ambientColor = new Float32Array([0.5, 0.5, 0.8]);
+        this.ambientIntensity = 0.7;
+
+
 
 
         //カメラ
@@ -218,6 +243,118 @@ class SolaWGL {
     }
 
 
+    // 配列インデックス 8 の、1番目の要素 (Y成分またはG成分) に 0.9 を設定
+    //setGenericArray(8, 1, 0.9); 
+
+    setShaderGenericArray(index, componentIndex, value) { //index: 0-15, componentIndex: 0-3, value: float
+        
+        // インデックスの検証 (0から15の範囲か)
+        if (index < 0 || index >= 16 || !Number.isInteger(index)) {
+            console.error(`setGenericArrayElementComponent: 無効な配列インデックスです: ${index} (0から15の整数である必要があります)。`);
+            return;
+        }
+
+        // 成分インデックスの検証 (0から3の範囲か)
+        if (componentIndex < 0 || componentIndex >= 4 || !Number.isInteger(componentIndex)) {
+            console.error(`setGenericArrayElementComponent: 無効な成分インデックスです: ${componentIndex} (0, 1, 2, 3 のいずれかである必要があります)。`);
+            return;
+        }
+        
+        // 値の検証 (数値か)
+        if (typeof value !== 'number') {
+             console.error(`setGenericArrayElementComponent: 設定値は数値である必要があります。渡された値: ${value}`);
+            return;
+        }
+
+        // データの設定
+        const absoluteIndex = (index * 4) + componentIndex; 
+        
+        this.genericArray[absoluteIndex] = value;
+
+
+    }
+
+
+
+    /**
+     * 光の方向 (vec3) を設定します。
+     * @param {number} x - X成分。
+     * @param {number} y - Y成分。
+     * @param {number} z - Z成分。
+     */
+    setLightDirection(x, y, z) {
+        if (typeof x !== 'number' || typeof y !== 'number' || typeof z !== 'number') {
+            console.error("setLightDirection: x, y, z は数値である必要があります。");
+            return;
+        }
+        // 既存のFloat32Arrayの各要素を個別に更新
+        this.lightDirection[0] = x;
+        this.lightDirection[1] = y;
+        this.lightDirection[2] = z;
+    }
+
+    /**
+     * 光の色 (vec3) を設定します。
+     * @param {number} r - R成分。
+     * @param {number} g - G成分。
+     * @param {number} b - B成分。
+     */
+    setLightColor(r, g, b) {
+        if (typeof r !== 'number' || typeof g !== 'number' || typeof b !== 'number') {
+            console.error("setLightColor: r, g, b は数値である必要があります。");
+            return;
+        }
+        // 既存のFloat32Arrayの各要素を個別に更新
+        this.lightColor[0] = r;
+        this.lightColor[1] = g;
+        this.lightColor[2] = b;
+    }
+
+    /**
+     * 環境光の色 (vec3) を設定します。
+     * @param {number} r - R成分。
+     * @param {number} g - G成分。
+     * @param {number} b - B成分。
+     */
+    setAmbientColor(r, g, b) {
+        if (typeof r !== 'number' || typeof g !== 'number' || typeof b !== 'number') {
+            console.error("setAmbientColor: r, g, b は数値である必要があります。");
+            return;
+        }
+        // 既存のFloat32Arrayの各要素を個別に更新
+        this.ambientColor[0] = r;
+        this.ambientColor[1] = g;
+        this.ambientColor[2] = b;
+    }
+
+    /**
+     * 光の強度 (float) を設定します。
+     * @param {number} newIntensity - 新しい強度値。
+     */
+    setLightIntensity(newIntensity) {
+        if (typeof newIntensity !== 'number') {
+            console.error("setLightIntensity: 数値を渡してください。");
+            return;
+        }
+        this.lightIntensity = newIntensity;
+    }
+
+    /**
+     * 環境光の強度 (float) を設定します。
+     * @param {number} newIntensity - 新しい強度値。
+     */
+    setAmbientIntensity(newIntensity) {
+        if (typeof newIntensity !== 'number') {
+            console.error("setAmbientIntensity: 数値を渡してください。");
+            return;
+        }
+        this.ambientIntensity = newIntensity;
+    }
+
+
+
+
+
     setCameraTarget(x, y, z) {
         vec3.set(this.cameraTarget, x, y, z);
     }
@@ -225,14 +362,18 @@ class SolaWGL {
     setCameraPosition(x, y, z) {
         vec3.set(this.cameraPosition, x, y, z);
     }
-    setCameraAngle(yaw, pitch, roll) {
-        vec3.set(this.cameraAngles, yaw, pitch, roll);  // [Yaw(Y軸回転), Pitch(X軸回転), Roll(Z軸回転)]
+    setCameraAngle(pitch, yaw, roll) {  //x:pitch y:yaw roll:z
+        vec3.set(this.cameraAngles, pitch, yaw, roll);  // [Yaw(Y軸回転), Pitch(X軸回転), Roll(Z軸回転)]
     }
     setCameraDistance(dist) {
         this.cameraDistance = dist; // 注視点 (Target) からの距離
     }
 
+    getCameraPosition() {
 
+        return this.cameraPosition;
+
+    }
 
     /*
         this.cameraDistance = 5.0; // 注視点 (Target) からの距離
@@ -244,11 +385,14 @@ class SolaWGL {
      * 距離(cameraDistance)と角度(cameraAngles)に基づき、cameraPosition を計算し、設定する。
      */
     calcCameraPosByDistanceAndAngles() {
+
+
+        //x:pitch y:yaw roll:z
         // 回転角をローカル変数に格納 
         // Yaw: Y軸回転 (水平方向)
-        const yaw = Math.PI * this.cameraAngles[0] / 360.0; 
+        const yaw = Math.PI * this.cameraAngles[1] / 180.0; 
         // Pitch: X軸回転 (垂直方向)
-        const pitch = Math.PI * this.cameraAngles[1] / 360.0;
+        const pitch = Math.PI * this.cameraAngles[0] / 180.0;
         
         const L = this.cameraDistance; // cameraLength -> cameraDistance に変更
 
@@ -411,7 +555,21 @@ class SolaWGL {
         // ユニフォーム (行列やテクスチャ)
         locations.uModelMatrixLocation = getUniformLocationLogged('u_modelMatrix');
         locations.uVpMatrixLocation = getUniformLocationLogged('u_vpMatrix');
+
         locations.uSamplerLocation = getUniformLocationLogged('u_sampler');
+
+
+        locations.uGenericDataLocation = getUniformLocationLogged('u_genericArray');
+
+        locations.uLightDirectionLocation = getUniformLocationLogged('u_lightDirection');
+        locations.uLightColorLocation = getUniformLocationLogged('u_lightColor');
+        locations.uLightIntensityLocation = getUniformLocationLogged('u_lightIntensity');
+        locations.uAmbientColorLocation = getUniformLocationLogged('u_ambientColor');
+        locations.uAmbientIntensityLocation = getUniformLocationLogged('u_ambientIntensity');
+
+
+
+
 
         return locations;
     }
@@ -511,6 +669,29 @@ class SolaWGL {
         }
 
 
+        if (this.uGenericDataLocation != null) {
+            this.gl.uniform4fv(this.uGenericDataLocation,this.genericArray, false, 16);
+        }
+
+        if (this.uLightDirectionLocation != null) {
+            this.gl.uniform3fv(this.uLightDirectionLocation, this.lightDirection);
+        }
+        if (this.uLightColorLocation != null) {
+            this.gl.uniform3fv(this.uLightColorLocation, this.lightColor);
+        }
+        if (this.uLightIntensityLocation != null) {
+            this.gl.uniform1f(this.uLightIntensityLocation, this.lightIntensity);
+        }
+
+        if (this.uAmbientColorLocation != null) {
+            this.gl.uniform3fv(this.uAmbientColorLocation, this.ambientColor);
+        }
+        if (this.uAmbientIntensityLocation != null) {
+            this.gl.uniform1f(this.uAmbientIntensityLocation, this.ambientIntensity);
+        }
+
+
+
         const program = entry.program;
         const locations = entry.locations;
 
@@ -535,7 +716,18 @@ class SolaWGL {
             this.uModelMatrixLocation = locations.uModelMatrixLocation;
             this.uVpMatrixLocation = locations.uVpMatrixLocation;
             this.uSamplerLocation = locations.uSamplerLocation;
+
+            this.uGenericDataLocation = locations.uGenericDataLocation;
+
+            this.uLightDirectionLocation = locations.uLightDirectionLocation;
+            this.uLightColorLocation = locations.uLightColorLocation;
+            this.uLightIntensityLocation = locations.uLightIntensityLocation;
+            this.uAmbientColorLocation = locations.uAmbientColorLocation;
+            this.uAmbientIntensityLocation = locations.uAmbientIntensityLocation;
+
             
+
+
             this.currentProgram = program;
 
 
