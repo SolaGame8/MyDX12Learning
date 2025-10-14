@@ -32,7 +32,17 @@ HTML 側（例: `index.html`）で `canvas` を用意します。
 
 ```html
 <canvas id="glCanvas" width="1280" height="720"></canvas>
-<script type="module" src="./main.js"></script>
+
+<script src="./js/gl-matrix-min.js"></script>
+
+<script src="./js/solaPerlinNoise.js"></script>
+<script src="./js/solaRandomGenerator.js"></script>
+<script src="./js/solaMesh.js"></script>
+<script src="./js/solaTextureManager.js"></script>
+<script src="./js/solaSoundManager.js"></script>
+<script src="./js/solaInputManager.js"></script>
+<script src="./js/solaGltfParser.js"></script>
+<script src="./js/solaWGL.js"></script>
 ```
 
 `main.js` で初期化とメインループを組みます。
