@@ -22,34 +22,58 @@ uniform mat4 u_modelMatrix; //Model 行列
 
 uniform vec4 u_genericArray[16]; 
 
+// ボーン行列の配列 (最大128個)
+// この配列には、フレームごとの「最終変換行列 (JointModelMatrix * InverseBindMatrix)」を格納します。
+const int MAX_BONES = 128; 
+uniform mat4 u_boneMatrices[MAX_BONES]; 
 
-//varying vec2 v_texcoord;      // UV情報をフラグメントシェーダーに渡す
 
 out vec2 v_texcoord; // v_texcoordを out に変更
 out vec4 v_normal;
 
 void main() {
 
+    //ボーンの計算
+    mat4 skinningMatrix = mat4(1.0);    //変形しない正規行列
+
+    const float boneMax = 128.0;
+
+    if (a_boneID.x > 0.0 && a_boneID.x - 1.0 < boneMax) { //ボーンの影響（ボーンIDの情報）がある場合
+
+    
+        // 頂点に影響を与える最大4つのボーンの最終行列を加重平均
+        skinningMatrix = a_boneWeight.x * u_boneMatrices[int(a_boneID.x - 1.0)];
+
+        if (a_boneID.y > 0.0 && a_boneID.y - 1.0 < boneMax) {
+            skinningMatrix +=  a_boneWeight.y * u_boneMatrices[int(a_boneID.y - 1.0)];
+        }
+        if (a_boneID.z > 0.0 && a_boneID.z - 1.0 < boneMax) {
+            skinningMatrix +=  a_boneWeight.z * u_boneMatrices[int(a_boneID.z - 1.0)];
+        }
+        if (a_boneID.w > 0.0 && a_boneID.w - 1.0 < boneMax) {
+            skinningMatrix +=  a_boneWeight.w * u_boneMatrices[int(a_boneID.w - 1.0)];
+        }
+    
+
+    }
+
+    // 頂点位置をボーンの影響によって変更
+    vec4 skinnedPosition = skinningMatrix * a_position;
+    
+    // 法線ベクトルをボーンの影響によって変更
+    vec4 skinnedNormal = skinningMatrix * a_normal;
 
     mat4 modelViewMatrix = u_vpMatrix * u_modelMatrix;
-
-    // P * V * M * Pos の順
-    //gl_Position = u_vpMatrix * u_modelMatrix * a_position;
-    gl_Position = modelViewMatrix * a_position;
+    gl_Position = modelViewMatrix * skinnedPosition;
 
 
 
 
     // UV情報を出力
     v_texcoord = a_texcoord;
-    v_normal = normalize((modelViewMatrix * a_normal).xyzw);
+    v_normal = normalize(modelViewMatrix * skinnedNormal); //モデル行列の影響も与える
 
 
-    // ダミー使用: コンパイラに変数を削除されないようにする
-    float dummy = a_normal.x + a_boneID.x + a_boneWeight.x;
-    if (dummy > 1000.0) { 
-        gl_Position.y += dummy * 0.000001;; 
-    }
 
 
 }

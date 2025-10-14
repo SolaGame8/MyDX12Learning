@@ -45,6 +45,19 @@ class SolaMesh {
 
         this.textureKey = null;
 
+
+        // アニメーションデータ関連の内部プロパティ
+        //this._animationDataList = null;     // getAnimationData()から渡される全アニメーションデータ
+        this._animationDataList = [];     // getAnimationData()から渡される全アニメーションデータ
+        this._boneCount = 0;                // ボーンの総数（ダミーID 0 を含む）
+        this._identityBoneMatrixArray = null; // 単位行列のキャッシュ
+
+        // アニメーション状態管理
+        this._currentAnimation = null;      // 再生中のアニメーションデータオブジェクト
+        this._currentFrame = 0;             // 現在の再生フレームインデックス (0から)
+        this._isLooping = false;            // ループ再生フラグ
+
+
         /*
         this._vertices = [];    //4
         this._uvs = [];         //2
@@ -259,6 +272,197 @@ class SolaMesh {
 
 
 
+    /**
+     * SolaGltfParserから受け取った全アニメーションデータを保持する
+     * @param {Array<object>} animationDataList - アニメーションデータの配列
+     */
+
+    setAnimationData(animationDataList) {
+
+        if (animationDataList && animationDataList.length > 0) {
+            
+            //this._animationDataList = animationDataList;
+
+            // データの追加 (結合)
+            this._animationDataList.push(...animationDataList);
+            
+            // 最初の要素からボーン数を取得し、保持する
+            this._boneCount = animationDataList[0].boneCount; 
+            
+            // 単位行列配列のキャッシュを初期化
+            //this._identityBoneMatrixArray = null; 
+            
+            console.log(`[SolaMesh] アニメーションデータ ${animationDataList.length} 件をセットしました。総ボーン数: ${this._boneCount}`);
+
+        /*
+        } else {
+            this._animationDataList = null;
+            this._boneCount = 0;
+            this._identityBoneMatrixArray = null;
+        */
+
+        }
+    }
+
+
+
+    getAnimationKey() {
+
+        let keyArray = [];
+
+        if (this._animationDataList && this._animationDataList.length > 0) {
+
+
+            for (let i = 0; i < this._animationDataList.length; i++) {
+                keyArray.push(this._animationDataList[i].animationNameKey);
+            }
+
+        }
+
+
+        return keyArray;
+    }
+
+
+    /**
+     * シェーダーに送るアニメーションデータ（単位行列）を取得
+     * @returns {Float32Array|null} - ボーン数分の単位行列配列、またはデータがない場合は null
+     */
+    getIdentityBoneMatrixArray() {
+        
+        if (this._boneCount === 0) {
+            return null;
+        }
+
+        // キャッシュがあればそれを返す
+        if (this._identityBoneMatrixArray) {
+            return this._identityBoneMatrixArray;
+        }
+
+        // 単位行列配列を生成し、キャッシュする
+        const BONE_COUNT = this._boneCount;
+        const MATRIX_SIZE = 16;
+        const identityArray = new Float32Array(BONE_COUNT * MATRIX_SIZE);
+        
+        // gl-matrixの単位行列（一時オブジェクト）
+        const identityMatrix = mat4.create(); 
+        mat4.identity(identityMatrix); // 単位行列を保証
+
+        // すべてのボーン位置に単位行列を設定
+        for (let i = 0; i < BONE_COUNT; i++) {
+            const offset = i * MATRIX_SIZE;
+            identityArray.set(identityMatrix, offset); 
+        }
+
+        // キャッシュに保存
+        this._identityBoneMatrixArray = identityArray;
+
+        return this._identityBoneMatrixArray;
+    }
+
+
+    /**
+     * 指定されたキーのアニメーションの再生を開始する
+     * @param {string} key - アニメーション名キー
+     * @param {boolean} loop - ループ再生するかどうか
+     */
+    playAnimation(key, loop) {
+
+        if (!this._animationDataList) {
+            console.warn(`[SolaMesh.playAnimation] アニメーションデータがセットされていません。`);
+            return;
+        }
+
+        // 該当するアニメーションデータを検索
+        const targetAnimation = this._animationDataList.find(anim => anim.animationNameKey === key);
+
+        if (targetAnimation) {
+            this._currentAnimation = targetAnimation;
+            this._currentFrame = 0; // フレームを最初に戻す
+            this._isLooping = loop;
+            //console.log(`[SolaMesh.playAnimation] '${key}' の再生を開始しました。ループ: ${loop}`);
+        } else {
+            // キーが存在しない場合は再生を停止（静的ポーズに戻す）
+            this._currentAnimation = null;
+            this._currentFrame = 0;
+            this._isLooping = false;
+            console.warn(`[SolaMesh.playAnimation] キー '${key}' のアニメーションは見つかりませんでした。`);
+        }
+    }
+
+    stopAnimation() {
+
+        this._currentAnimation = null;
+        this._currentFrame = 0;
+        this._isLooping = false;
+
+    }
+
+    /**
+     * アニメーションデータを持っているかを取得
+     * @returns {boolean} - アニメーションデータがセットされていれば true
+     */
+
+    hasAnimationData() {
+        return this._animationDataList !== null && this._animationDataList.length > 0;
+    }
+
+
+
+    /**
+     * シェーダーに送るアニメーション行列配列を取得する
+     * @returns {Float32Array|null} - シェーダー転送用の行列配列
+     */
+    getShaderAnimationData() {
+        
+        const currentAnim = this._currentAnimation;
+
+        if (currentAnim) {
+
+            // --- アニメーション再生中の処理 ---
+            
+            const frame = this._currentFrame;
+            const maxFrames = currentAnim.maxKeyframeCount;
+            const boneCount = currentAnim.boneCount;
+            const matrixArray = currentAnim.animationMatrixArray;
+            
+            // 現在のフレームの行列データ配列の開始オフセット
+            const offset = frame * boneCount * 16;
+            
+            // 行列を切り出す (Float32Array.subarray はパフォーマンスが高く、新しい配列を生成しない)
+            const frameMatrixArray = matrixArray.subarray(offset, offset + boneCount * 16);
+            
+            // ----------------------------------------------------
+            // フレームインクリメント処理
+            // ----------------------------------------------------
+            this._currentFrame++;
+            
+            //console.log(`[getShaderAnimationData] frame '${this._currentFrame}' / ${maxFrames} `);
+
+            // 最終フレームに達した場合の処理
+            if (this._currentFrame >= maxFrames) {
+                if (this._isLooping) {
+                    // ループの場合: フレームを 0 に戻す
+                    this._currentFrame = 0;
+                } else {
+                    // ループでない場合: アニメーションを停止し、静的ポーズに戻る
+                    this._currentAnimation = null;
+                    this._currentFrame = 0;
+                    this._isLooping = false;
+                    console.log(`[SolaMesh] アニメーション '${currentAnim.animationNameKey}' が完了しました。`);
+                }
+            }
+
+            return frameMatrixArray;
+
+        } else {
+            // --- アニメーション停止中、または未設定の場合の処理 ---
+            // 単位行列の配列キャッシュが存在すればそれを返す (静的ポーズ)
+            return this.getIdentityBoneMatrixArray();
+        }
+    }
+
+
     /*
         createBuffer(gl, data, type = gl.ARRAY_BUFFER, usage = gl.STATIC_DRAW) {
 
@@ -407,6 +611,14 @@ class SolaMesh {
         //＜頂点情報＞
 
         if (this.flg_buildMesh) {   //ビルド完了してた場合
+
+
+            let hasAnime = this.hasAnimationData();
+
+            if (hasAnime) {
+                let boneAnimeMat = this.getShaderAnimationData();
+                glHelper.setBoneAnimationMat(boneAnimeMat);
+            }
 
 
             //const STRIDE = 18 * Float32Array.BYTES_PER_ELEMENT; 

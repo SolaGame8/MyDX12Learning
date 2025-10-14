@@ -1,10 +1,5 @@
 
-/*
-const mat4 = glMatrix.mat4;
-const vec2 = glMatrix.vec2;
-const vec3 = glMatrix.vec3;
-const vec4 = glMatrix.vec4;
-*/
+
 
 const mat4 = glMatrix.mat4; 
 const vec2 = glMatrix.vec2; 
@@ -12,8 +7,6 @@ const vec3 = glMatrix.vec3;
 const vec4 = glMatrix.vec4; 
 const quat = glMatrix.quat;
 
-//import {vec2, vec3, vec4, quat, mat4} from 'gl-matrix';
-//var MinimalGLTFLoader = require('build/minimal-gltf-loader.js');
 
 class SolaWGL {
 
@@ -95,6 +88,7 @@ class SolaWGL {
 
         this.uVpMatrixLocation = null;      //カメラの行列
         this.uModelMatrixLocation = null;   //モデル座標
+        this.uBoneMatricesLocation  = null;   //ボーン
 
         this.uGenericDataLocation = null;
 
@@ -125,8 +119,9 @@ class SolaWGL {
         this.ambientColor = new Float32Array([0.5, 0.5, 0.8]);
         this.ambientIntensity = 0.7;
 
-
-
+        //ボーンの単位行列で初期化するための配列
+        this._identityBoneMatrixArray = this._createIdentityBoneMatrixArray();
+        this.flg_identityBoneMat = false;   //最初に一回だけ、ボーンの行列を単位行列で初期化
 
         //カメラ
 
@@ -152,45 +147,12 @@ class SolaWGL {
         this.near = 0.01;                                // ニアクリップ面
         this.far = 1000.0;                              // ファークリップ面
 
-        //ーーーーーーーーーーーーーーーーーーーーーーーー保留
-
-        
-
-
-
-        /*
-        // 三角形描画用のプロパティ
-        this.triangleProgram = null;
-        this.triangleVertexBuffer = null;
-        this.aPositionLocation = -1;
-
-        //this._initTriangleProgram();
-
-        // テクスチャ用のプロパティを追加
-        this.texture = null; 
-        this.uSamplerLocation = -1;
-*/
 
 
 
     }
 
 
-    /**
-     * シェーダーファイルを非同期で読み込む
-    async _loadShaderSource(url) {
-        try {
-            const response = await fetch(url);
-            if (!response.ok) {
-                throw new Error(`Failed to load shader: ${url} (${response.statusText})`);
-            }
-            return response.text();
-        } catch (e) {
-            console.error(e);
-            return null;
-        }
-    }
-     */
 
     /**
      * 非同期の初期化処理
@@ -206,32 +168,6 @@ class SolaWGL {
         await this.loadShaderProgram(key, './glsl/simple.vs', './glsl/simple.fs');
 
         this.useShaderProgram(key);
-
-        /*
-
-        // シェーダーソースを非同期で読み込み
-        const vsSource = await this._loadShaderSource('./glsl/simple.vs');
-        const fsSource = await this._loadShaderSource('./glsl/simple.fs');
-
-        if (!vsSource || !fsSource) {
-            console.error("シェーダーソースの読み込みに失敗しました。");
-            return false;
-        }
-
-        // 三角形描画プログラムの初期化（ソースコードを引数として渡す）
-        this._initTriangleProgram(vsSource, fsSource);
-
-        */
-
-        // InputManagerの初期化
-        /*
-        if (typeof SolaInputManager !== 'undefined') {
-            this.inputManager = new SolaInputManager(this); 
-        }
-        */
-
-
-
 
 
 
@@ -555,6 +491,7 @@ class SolaWGL {
         // ユニフォーム (行列やテクスチャ)
         locations.uModelMatrixLocation = getUniformLocationLogged('u_modelMatrix');
         locations.uVpMatrixLocation = getUniformLocationLogged('u_vpMatrix');
+        locations.uBoneMatricesLocation = getUniformLocationLogged('u_boneMatrices');
 
         locations.uSamplerLocation = getUniformLocationLogged('u_sampler');
 
@@ -575,29 +512,7 @@ class SolaWGL {
     }
 
 
-    /*
-    _getProgramLocations(program) {
 
-        const gl = this.gl;
-        
-
-        return {
-                // アトリビュート (Meshデータの属性)
-                aPositionLocation: gl.getAttribLocation(program, 'a_position'),
-                aTexcoordLocation: gl.getAttribLocation(program, 'a_texcoord'),
-                aNormalLocation: gl.getAttribLocation(program, 'a_normal'),
-                aBoneIDLocation: gl.getAttribLocation(program, 'a_boneID'),
-                aBoneWeightLocation: gl.getAttribLocation(program, 'a_boneWeight'),
-
-                // ユニフォーム (行列やテクスチャ)
-                uModelMatrixLocation: gl.getUniformLocation(program, 'u_modelMatrix'),
-                uVpMatrixLocation: gl.getUniformLocation(program, 'u_vpMatrix'),
-                uSamplerLocation: gl.getUniformLocation(program, 'u_sampler')
-            };
-
-
-    }
-*/
 
 
     /**
@@ -690,6 +605,12 @@ class SolaWGL {
             this.gl.uniform1f(this.uAmbientIntensityLocation, this.ambientIntensity);
         }
 
+        if (this.uBoneMatricesLocation != null) {
+            if (!this.flg_identityBoneMat) {
+                this.clearBoneMatrices();   //最初だけシェーダーのボーン行列データを、正規行列で初期化
+                this.flg_identityBoneMat = true;
+            }
+        }
 
 
         const program = entry.program;
@@ -715,6 +636,7 @@ class SolaWGL {
 
             this.uModelMatrixLocation = locations.uModelMatrixLocation;
             this.uVpMatrixLocation = locations.uVpMatrixLocation;
+            this.uBoneMatricesLocation = locations.uBoneMatricesLocation;
             this.uSamplerLocation = locations.uSamplerLocation;
 
             this.uGenericDataLocation = locations.uGenericDataLocation;
@@ -737,213 +659,103 @@ class SolaWGL {
             return true;
         }
 
-        /*
-        const program = this.shaderPrograms.get(key);
 
-        if (program && program !== this.currentProgram) {
-            this.gl.useProgram(program);
-            this._getProgramLocations(program); // 新しいプログラムのロケーションを取得
-            this.currentProgram = program;
-            return true;
-        }
-
-        if (!this.currentProgram) {
-            console.warn(`Cannot draw: Shader program "${shaderKey}" is not bound.`);
-        }
-*/
 
         return false;
     }
     
 
     /**
-     * 三角形描画に必要なリソースを初期化する（初回のみ実行）
-    _initTriangleProgram(vsSource, fsSource) {
-        const gl = this.gl;
-
-
-
-        // 2. プログラム作成
-        this.triangleProgram = this._createProgram(vsSource, fsSource);
-        if (!this.triangleProgram) return;
-
-        // 3. 属性とユニフォームの位置を取得
-        this.aPositionLocation = gl.getAttribLocation(this.triangleProgram, 'a_position');
-        this.aTexcoordLocation = gl.getAttribLocation(this.triangleProgram, 'a_texcoord');
-        this.uTranslationLocation = gl.getUniformLocation(this.triangleProgram, 'u_translation');
-        this.uScaleLocation = gl.getUniformLocation(this.triangleProgram, 'u_scale');
-
-        this.uSamplerLocation = gl.getUniformLocation(this.triangleProgram, 'u_sampler'); 
-        
-
-
-        // 左右 -1.0 ～ 1.0, 上下 1.0 ～ -1.0
-        // 頂点データ: (位置X, 位置Y, UV_U, UV_V) のセット
-        const positions = new Float32Array([
-            0.0,  0.1,  0.5, 1.0,  // 頂点 (U=0.5, V=1.0)
-            -0.1, -0.1,  0.0, 0.0,  // 左下 (U=0.0, V=0.0)
-            0.1, -0.1,  1.0, 0.0,  // 右下 (U=1.0, V=0.0)
-        ]);
-
-        this.triangleVertexBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.triangleVertexBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
-
-    }
+     * 内部使用：シェーダーの最大ボーン数に対応する単位行列のFloat32Arrayを作成
+     * @returns {Float32Array} - MAX_BONES * 16 のサイズの単位行列配列
      */
-
-/*
-    async loadTexture(url) {
-        const gl = this.gl;
+    _createIdentityBoneMatrixArray() {
+        const MAX_BONES = 128;
+        const MATRIX_SIZE = 16;
+        const identityArray = new Float32Array(MAX_BONES * MATRIX_SIZE);
+        const identityMatrix = mat4.create(); // gl-matrixの単位行列 (1,0,0,0, 0,1,0,0, ...)
         
-        // ご自身の texture-util.js を使用する場合は、この Promise ブロックを置き換えてください
-        return new Promise(resolve => {
-            const image = new Image();
-            image.onload = () => {
-                const texture = gl.createTexture();
-                gl.bindTexture(gl.TEXTURE_2D, texture);
-
-                // Y軸反転設定
-                gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-                
-                // テクスチャに画像データをコピー
-                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
-
-                // ミップマップとフィルタリング設定
-                gl.generateMipmap(gl.TEXTURE_2D);   //MipMap生成
-
-                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
-                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-
-                gl.bindTexture(gl.TEXTURE_2D, null);
-
-                this.texture = texture; // インスタンスに保存
-                resolve(texture);
-            };
-            image.onerror = () => {
-                console.error(`Failed to load image: ${url}`);
-                resolve(null);
-            };
-            image.src = url;
-        });
+        // すべてのボーン位置に単位行列を設定
+        for (let i = 0; i < MAX_BONES; i++) {
+            const offset = i * MATRIX_SIZE;
+            // set関数は、指定されたオフセットから、コピー元のすべての要素をコピーします
+            identityArray.set(identityMatrix, offset); 
+        }
+        return identityArray;
     }
-*/
-
-
 
     /**
-     * 新規追加: 三角形を描画する
-     * @param {{x: number, y: number}} position - 画面中央(0,0)からの相対座標(-1.0から1.0)
-     * @param {number} scale - スケール
+     * 🚨 【新規関数】シェーダーの u_boneMatrices を最大数まで単位行列で初期化（クリア）する
      */
-    /*
-    drawTriangle(position = {x: 0, y: 0}, scale = 1.0) {
-        if (!this.gl) return;
+    clearBoneMatrices() {
 
-        // 初回実行時に初期化を行う
-        if (!this.triangleProgram) {
-            this._initTriangleProgram();
-            if (!this.triangleProgram) return; // 初期化失敗
+        /*
+        if (!this._identityBoneMatrixArray) {
+            // 単位行列配列を初回のみ生成し、キャッシュ
+            this._identityBoneMatrixArray = this._createIdentityBoneMatrixArray();
         }
-        
-        const gl = this.gl;
+        */
 
-        gl.useProgram(this.triangleProgram);
+        // 最初の行列の16成分を確認
+        const firstMatrix = this._identityBoneMatrixArray.subarray(0, 16);
+        console.log("🚨Identity Matrix Check (First 16 elements):", firstMatrix);
 
-        // 属性(a_position)の設定
+        // setBoneAnimationMat関数を使ってGPUに転送
+        this.setBoneAnimationMat(this._identityBoneMatrixArray);
 
-        const STRIDE = 4 * Float32Array.BYTES_PER_ELEMENT; // 1頂点あたり (X, Y, U, V) で 16バイト
-
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.triangleVertexBuffer);
-        gl.enableVertexAttribArray(this.aPositionLocation);
-
-        gl.vertexAttribPointer( //位置
-            this.aPositionLocation, 
-            2,            // 2つの要素 (x, y)
-            gl.FLOAT,     // データの型
-            false,        // 正規化しない
-            STRIDE,            // ストライド (0 = 連続データ)
-            0             // オフセット
-        );
-
-
-        gl.enableVertexAttribArray(this.aTexcoordLocation);
-        gl.vertexAttribPointer( //UV
-            this.aTexcoordLocation,
-            2,            // 2つの要素 (U, V)
-            gl.FLOAT,
-            false,
-            STRIDE,       // ★ ストライド: 16バイトに変更
-            2 * Float32Array.BYTES_PER_ELEMENT // ★ オフセット: 位置 (X, Y) の 8バイト後から開始
-        );
-
-        // ユニフォーム変数の設定
-        gl.uniform2f(this.uTranslationLocation, position.x, position.y);
-        gl.uniform1f(this.uScaleLocation, scale);
-
-
-        // テクスチャ処理を追加
-        if (this.texture) {
-            // 1. テクスチャユニット0をアクティブ化
-            gl.activeTexture(gl.TEXTURE0);
-            // 2. テクスチャをバインド
-            gl.bindTexture(gl.TEXTURE_2D, this.texture);
-            // 3. フラグメントシェーダーの u_sampler にユニット0（最初のテクスチャ）を設定
-            gl.uniform1i(this.uSamplerLocation, 0); 
-        }
-
-
-        // 描画
-        gl.drawArrays(gl.TRIANGLES, 0, 3);
+        console.log(`🚨[clearBoneMatrices] u_boneMatricesを単位行列でクリアしました`);
     }
-    */
-
 
     /**
-     * 【修正】描画のメインメソッド
-     * @param {SolaMesh} mesh - 描画するSolaMeshオブジェクト
-     * @param {string} shaderKey - 使用するシェーダープログラムのキー
+     * ボーンアニメーション行列配列をシェーダーユニフォームに渡す
+     * @param {Float32Array} matArray - アニメーション行列 (16成分 * Nボーン)
      */
+    setBoneAnimationMat(matArray) {
 
-    /*
-    //drawMesh(mesh, shaderKey) { 
-    drawMesh(mesh) { 
-
-        if (!this.gl || !mesh) return;
-        const gl = this.gl;
-        
-        // シェーダープログラムをキーで切り替え
-        //this.useShaderProgram(shaderKey);
-        
-
-        
-        // SolaTextureManagerを使ってテクスチャをバインド ---
-
-        const textureKey = mesh.textureKey;
-
-        if (this.textureManager && textureKey) {
-            const webglTexture = this.textureManager.get(textureKey);
-            if (webglTexture) {
-                gl.activeTexture(gl.TEXTURE0);
-                gl.bindTexture(gl.TEXTURE_2D, webglTexture);
-                // サンプラーユニフォームは、シェーダー切り替え時にロケーションを取得済み
-                gl.uniform1i(this.uSamplerLocation, 0); 
-            }
+        if (!this.gl || this.uBoneMatricesLocation === null) {
+            console.warn("🚨[setBoneAnimationMat] WebGLコンテキストまたはユニフォームロケーションが設定されていません。");
+            return;
         }
+
+        if (!(matArray instanceof Float32Array)) {
+            console.error("🚨[setBoneAnimationMat] matArrayはFloat32Arrayである必要があります。");
+            return;
+        }
+
+        //console.log(`🚨[setBoneAnimationMat] ボーン行列 ${matArray.length / 16} 個をアップロード開始`);
         
-        // 3. SolaMeshオブジェクトにバインディングとModel行列計算を委譲
-        mesh.draw(this);
+        const MAX_BONES = 128;
+        const MATRIX_SIZE = 16;
 
-
-
-        // 5. 描画コマンドの実行
-        gl.drawArrays(gl.TRIANGLES, 0, mesh.vertexCount);
+        // 現在の行列数
+        const currentMatrixCount = matArray.length / MATRIX_SIZE;
         
-        // 描画後はバッファをアンバインド
-        gl.bindBuffer(gl.ARRAY_BUFFER, null);
-        gl.bindTexture(gl.TEXTURE_2D, null);
+        let dataToUpload = matArray;
+
+        // 最大ボーン数を超えた場合の処理
+        if (currentMatrixCount > MAX_BONES) {
+            
+            // 最大数に合わせて配列を切り捨てる
+            const maxElements = MAX_BONES * MATRIX_SIZE;
+            
+            // subarray() で新しい Float32ArrayView を作成し、転送データを制限
+            dataToUpload = matArray.subarray(0, maxElements); 
+            
+            console.warn(`[setBoneAnimationMat] ボーン行列数が最大値(${maxMatrixCount})を超えました。${currentMatrixCount}個から${maxMatrixCount}個に制限しました。`);
+
+        }
+
+        // uniformMatrix4fvを使って行列配列をアップロード
+        this.gl.uniformMatrix4fv(this.uBoneMatricesLocation, false, dataToUpload);
+        
+        //console.log(`🚨[setBoneAnimationMat] ボーン行列 ${matArray.length / 16} 個をアップロードしました。`);
+
+
+
     }
-    */
+
+
+
 
 
 
@@ -1077,6 +889,42 @@ class SolaWGL {
     }
 
 
+    /**
+     * フルスクリーン表示とウィンドウ表示を切り替える。
+     */
+    
+    toggleFullscreen() {
+        const doc = document;
+        const fullscreenElement = doc.fullscreenElement || doc.mozFullScreenElement || doc.webkitFullscreenElement || doc.msFullscreenElement;
+
+        if (fullscreenElement) {
+            // フルスクリーンを解除する
+            if (doc.exitFullscreen) {
+                doc.exitFullscreen();
+            } else if (doc.mozCancelFullScreen) {
+                doc.mozCancelFullScreen();
+            } else if (doc.webkitExitFullscreen) {
+                doc.webkitExitFullscreen();
+            } else if (doc.msExitFullscreen) {
+                doc.msExitFullscreen();
+            }
+        } else {
+            // キャンバス要素をフルスクリーンにする
+            const element = this.canvas;
+            if (element.requestFullscreen) {
+                element.requestFullscreen();
+            } else if (element.mozRequestFullScreen) {
+                element.mozRequestFullScreen();
+            } else if (element.webkitRequestFullscreen) {
+                element.webkitRequestFullscreen();
+            } else if (element.msRequestFullscreen) {
+                element.msRequestFullscreen();
+            }
+        }
+    }
+
+
+    
     /**
      * 登録したイベントリスナーの解除と、保持している変数の破棄を行う。
      */

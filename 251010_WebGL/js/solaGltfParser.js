@@ -90,28 +90,106 @@ class SolaGltfParser {
 
 
             // ボーンツリー、アニメーションなどの追加情報のパース (Placeholder)
+
+
             const nodeData = this._parseNodes(gltf); // ノードツリー
+            /*
+                nodeData {
+                    name: node.name,
+                    children: node.children || [], // 子ノードのインデックス配列
+                    matrix: node.matrix, // 4x4トランスフォーム行列
+                    translation: node.translation,
+                    rotation: node.rotation, // クォータニオン [x, y, z, w]
+                    scale: node.scale,
+                    skin: node.skin, // このノードに適用される skin のインデックス
+                };
+            */
+
+
+
             const skinData = this._parseSkins(gltf, arrayBuffer); // スキン/ボーン情報
+
+            /*
+                skinData(skin, index)
+
+                    skin {
+                        name: skin.name,
+                        joints: skin.joints,    //ボーンとして機能するノードのインデックスのリスト
+                        inverseBindMatrices: inverseBindMatrices,   //Float32Array
+                    };
+            */
+
+
+
+
             const animationData = this._parseAnimations(gltf, arrayBuffer); // アニメーション情報
+
+            /*
+                animationData(anim, index)
+
+                    anim {
+                        name: animation.name,
+                        channels: channels, 
+                        samplers: samplers, 
+                        maxKeyframeCount: maxKeyframeCount, // 最大キーフレーム数
+                    };
+
+                        channels {
+                            samplerIndex: channel.sampler, 
+                            targetNodeIndex: channel.target.node, 
+                            targetPath: channel.target.path, 
+                        };
+
+                        samplers {
+                            interpolation: sampler.interpolation || 'LINEAR', 
+                            input: input,   //時間キー（秒）のデータ (Float32Array)
+                            output: output  //T/R/S の値のデータ (Float32Array) 
+                        };
+                }
+
+            */
+
+
             
 
-            // アニメーションデータ処理とベイク処理
+            // アニメーションデータ処理とベイク処理（個々のボーンのローカル行列から、ボーンツリーを考慮してモデル空間の行列へ）
             const bakedAnimationData = this._processAnimationData(gltf, skinData, animationData, nodeData);
 
+            /*
+                //Map<string, object> で、キーがアニメーション名（animationName）
 
+                bakedAnimationData {
+                    bakedAnimations: bakedAnimations,
+                    inverseMatrixArray: inverseMatrixArray,
+                    boneIndices: boneIndices
+                };
+
+                    bakedAnimations (
+                        animationName, 
+                        {animationMatrixArray: animationMatrixArray, maxKeyframeCount: maxKeyframeCount}
+                    );
+
+                        animationMatrixArray(finalJointMatrix , matrixStartOffset); //finalJointMatrix(mat4)
+                        //内部の Float32Array は、N frames × N  bones × 16 のサイズで、
+                        // フレームごとにボーンの最終行列（JointModelMatrix×IBM）がベイクされています
+
+            */
 
 
 
             // ここで、パース済みの全データをキャッシュに保存する
             const cachedData = {
-                gltf: gltf, // glTF JSON全体
-                arrayBuffer: arrayBuffer, // バイナリデータ全体
-                meshDataList: meshDataList, // SolaMesh用ジオメトリ
-                nodeData: nodeData,
-                skinData: skinData,
-                animationData: animationData,
+                //gltf: gltf, // glTF JSON全体
+                //arrayBuffer: arrayBuffer, // バイナリデータ全体
+                //meshDataList: meshDataList, // SolaMesh用ジオメトリ
+                //nodeData: nodeData,
+                //skinData: skinData,
+                //animationData: animationData,
                 bakedAnimationData: bakedAnimationData,
             };
+
+            this._modelCache.clear();   //以前のものはクリア
+
             this._modelCache.set(gltfUrl, cachedData);
 
             this._lastLoadedUrl = gltfUrl; 
@@ -119,7 +197,8 @@ class SolaGltfParser {
             console.log(`[SolaGltfParser.loadModel] ロードとパース完了。メッシュ数: ${meshDataList.length}`);
             return meshDataList;
 
-            } catch (error) {
+        } catch (error) {
+
             console.error('[SolaGltfParser.loadModel] ロード中にエラー発生:', error);
             throw error;
         }
@@ -298,58 +377,64 @@ class SolaGltfParser {
         
         
         if (!gltf.animations) return [];
-    console.log('[SolaGltfParser._parseAnimations] アニメーション情報パース開始');
 
-    const animationData = gltf.animations.map(animation => {
+        console.log('[SolaGltfParser._parseAnimations] アニメーション情報パース開始');
+
+        const animationData = gltf.animations.map(animation => {
+    
+            const samplers = animation.samplers.map(sampler => {
+
+                const input = this._getTypedArrayFromAccessor(gltf, arrayBuffer, sampler.input);
+                const output = this._getTypedArrayFromAccessor(gltf, arrayBuffer, sampler.output);
+                
+                return {
+                    interpolation: sampler.interpolation || 'LINEAR', 
+                    input: input, 
+                    output: output 
+                };
+            });
+
+            const channels = animation.channels.map(channel => ({
+                samplerIndex: channel.sampler, 
+                targetNodeIndex: channel.target.node, 
+                targetPath: channel.target.path, 
+            }));
         
-        const samplers = animation.samplers.map(sampler => {
-            const input = this._getTypedArrayFromAccessor(gltf, arrayBuffer, sampler.input);
-            const output = this._getTypedArrayFromAccessor(gltf, arrayBuffer, sampler.output);
-            
+            // 最大キーフレーム数を計算
+            let maxKeyframeCount = 0;
+
+            for (const sampler of samplers) {
+                // キーフレーム数は input 配列の長さ
+                const keyframeCount = sampler.input.length; 
+                if (keyframeCount > maxKeyframeCount) {
+                    maxKeyframeCount = keyframeCount;
+                }
+            }
+
             return {
-                interpolation: sampler.interpolation || 'LINEAR', 
-                input: input, 
-                output: output 
+                name: animation.name,
+                channels: channels, 
+                samplers: samplers, 
+                maxKeyframeCount: maxKeyframeCount, // 🚨 【変更】最大キーフレーム数を格納
             };
+
         });
 
-        const channels = animation.channels.map(channel => ({
-            samplerIndex: channel.sampler, 
-            targetNodeIndex: channel.target.node, 
-            targetPath: channel.target.path, 
-        }));
-        
-        // 🚨 【変更】最大キーフレーム数を計算
-        let maxKeyframeCount = 0;
-        for (const sampler of samplers) {
-            // キーフレーム数は input 配列の長さ
-            const keyframeCount = sampler.input.length; 
-            if (keyframeCount > maxKeyframeCount) {
-                maxKeyframeCount = keyframeCount;
-            }
-        }
 
-        return {
-            name: animation.name,
-            channels: channels, 
-            samplers: samplers, 
-            maxKeyframeCount: maxKeyframeCount, // 🚨 【変更】最大キーフレーム数を格納
-        };
-    });
 
-    // 🚨 【修正】ロギングに maxKeyframeCount を含める
-    console.log('🚨[SolaGltfParser._parseAnimations] パース結果 (最大10件):');
-    
-    console.log('--- アニメーション名のリスト (最大10件) ---');
-    animationData.slice(0, 10).forEach((anim, index) => {
-        const name = anim.name || `Animation ${index}`;
+        // 🚨 【修正】ロギングに maxKeyframeCount を含める
+        console.log('🚨[SolaGltfParser._parseAnimations] パース結果 (最大10件):');
         
-        // Max Keyframesを出力
-        console.log(`🚨  [${index}] Name: ${name} (Channels: ${anim.channels.length}, Max Keyframes: ${anim.maxKeyframeCount})`);
-    });
-    console.log('-------------------------------------------');
-    
-    return animationData;
+        console.log('--- アニメーション名のリスト (最大10件) ---');
+        animationData.slice(0, 10).forEach((anim, index) => {
+            const name = anim.name || `Animation ${index}`;
+            
+            // Max Keyframesを出力
+            console.log(`🚨  [${index}] Name: ${name} (Channels: ${anim.channels.length}, Max Keyframes: ${anim.maxKeyframeCount})`);
+        });
+        console.log('-------------------------------------------');
+        
+        return animationData;
     }
 
 
@@ -359,6 +444,7 @@ class SolaGltfParser {
      * @returns {object} ベイク済みアニメーションデータを含むオブジェクト
      */
     _processAnimationData(gltf, skinData, animationData, nodeData) {
+
         if (skinData.length === 0 || animationData.length === 0) {
             return { 
                 bakedAnimations: new Map(), // animationMatrixArray を格納
@@ -440,6 +526,7 @@ class SolaGltfParser {
             inverseMatrixArray: inverseMatrixArray,
             boneIndices: boneIndices
         };
+
     }
 
 
@@ -553,6 +640,60 @@ class SolaGltfParser {
                 const inputTimes = sampler.input; // 時間キー
                 const outputValues = sampler.output; // 値
                 
+                // 補間ロジックのプレースホルダー
+
+                if (inputTimes.length > 0) {
+                    hasAnim = true;
+
+                    // 1. time に対応する前後のキーフレームインデックス (k0, k1) を見つける
+                    let k0 = 0;
+                    for (let i = 0; i < inputTimes.length; i++) {
+                        if (inputTimes[i] <= time) {
+                            k0 = i;
+                        } else {
+                            break;
+                        }
+                    }
+                    // k0が最終フレームの場合、k1もk0に設定 (時間オーバーラン対策)
+                    const k1 = (k0 + 1 < inputTimes.length) ? (k0 + 1) : k0;
+                    
+                    // 2. 補間係数 t を計算 (t = (time - inputTimes[k0]) / (inputTimes[k1] - inputTimes[k0]))
+                    let t = 0.0;
+                    if (k0 !== k1) {
+                        const t0 = inputTimes[k0];
+                        const t1 = inputTimes[k1];
+                        t = (time - t0) / (t1 - t0);
+                    }
+                    
+                    // 3. outputValues[k0] と outputValues[k1] の間で補間を実行
+
+                    if (channel.targetPath === 'translation') {
+                        const count = 3;
+                        const v0 = outputValues.subarray(k0 * count, (k0 + 1) * count);
+                        const v1 = outputValues.subarray(k1 * count, (k1 + 1) * count);
+                        // vec3.lerp(out, a, b, t) を使用して線形補間
+                        vec3.lerp(translation, v0, v1, t);
+                        
+                    } else if (channel.targetPath === 'rotation') {
+                        const count = 4;
+                        const v0 = outputValues.subarray(k0 * count, (k0 + 1) * count);
+                        const v1 = outputValues.subarray(k1 * count, (k1 + 1) * count);
+                        // quat.slerp(out, a, b, t) を使用して球面線形補間
+                        quat.slerp(rotation, v0, v1, t);
+                        
+                    } else if (channel.targetPath === 'scale') {
+                        const count = 3;
+                        const v0 = outputValues.subarray(k0 * count, (k0 + 1) * count);
+                        const v1 = outputValues.subarray(k1 * count, (k1 + 1) * count);
+                        // vec3.lerp(out, a, b, t) を使用して線形補間
+                        vec3.lerp(scale, v0, v1, t);
+                    }
+                }
+
+
+                // アニメーションが複数ある場合、最初のものだけが適用される（このループの構造による）
+                // glTFは通常、ノードごとに一つのアニメーションチャンネルを持ちます。
+                /*
                 // 補間処理
                 // 1. time に対応する前後のキーフレームインデックス (k0, k1) を見つける
                 // 2. 補間係数 t を計算 (t = (time - inputTimes[k0]) / (inputTimes[k1] - inputTimes[k0]))
@@ -575,6 +716,8 @@ class SolaGltfParser {
                         // 🚨 実際には: vec3.lerp(scale, outputValues[k0*3], outputValues[k1*3], t);
                     }
                 }
+                */
+
             }
         }
         
@@ -602,12 +745,61 @@ class SolaGltfParser {
     }
 
 
+
+    /**
+     * ロードされたモデルのすべてのアニメーションデータを一括で取得します。
+     * 各アニメーションデータには、シェーダー転送に必要な情報がすべて含まれます。
+     * * @returns {Array<{animationNameKey: string, boneCount: number, maxKeyframeCount: number, animationMatrixArray: Float32Array}>|null}
+     * - 各アニメーションのキー情報とベイク済み行列配列を含む配列
+     */
+    getAnimationData() {
+
+        //シェーダーに転送するためのデータを作る
+
+        const gltfUrl = this._lastLoadedUrl;
+        if (!gltfUrl || !this._modelCache.has(gltfUrl)) {
+            console.warn('[getAnimationData] モデルがロードされていません。');
+            return null;
+        }
+
+        const cachedData = this._modelCache.get(gltfUrl);
+        const bakedAnimations = cachedData.bakedAnimationData.bakedAnimations;
+        
+        // モデル全体で共通のボーン総数 (ダミーボーンID 0 を含む) を取得
+        const numTotalBones = this.getNumBones(); 
+
+        if (!bakedAnimations || bakedAnimations.size === 0) {
+            console.log('[getAnimationData] アニメーションデータがキャッシュされていません。');
+            return [];
+        }
+
+        const animationDataList = [];
+
+        // Mapを反復処理し、要求された形式のオブジェクトを作成
+        bakedAnimations.forEach((value, key) => {
+            animationDataList.push({
+                animationNameKey: key, // アニメーション名 (例: "Walk", "Run")
+                boneCount: numTotalBones, // 総ボーン数 (ID 0を含む)
+                maxKeyframeCount: value.maxKeyframeCount, // アニメーションの総フレーム数
+                animationMatrixArray: value.animationMatrixArray // ベイク済み最終変換行列の配列 (Float32Array)
+            });
+        });
+
+        return animationDataList;
+    }
+
+
+
+
+
+
     /**
      * 指定されたアニメーションキーに対応する、フレームごとの最終ジョイント行列の配列を取得します。
      * @param {string} animeKey - 取得したいアニメーションの名前
      * @returns {Float32Array|null} - ベイク済みジョイント行列の配列、またはデータがない場合は null
      */
     getAnimationMatrixArray(animeKey) {
+
         const gltfUrl = this._lastLoadedUrl;
         if (!gltfUrl || !this._modelCache.has(gltfUrl)) {
             console.warn('[getAnimationMatrixArray] モデルがロードされていません。');
@@ -625,6 +817,10 @@ class SolaGltfParser {
         console.warn(`[getAnimationMatrixArray] アニメーションキー "${animeKey}" は見つかりませんでした。`);
         return null;
     }
+
+
+
+
 
     /**
      * モデルに共通のInverse Bind Matrix (IBM) 配列を取得します。
@@ -644,10 +840,11 @@ class SolaGltfParser {
     }
 
 
-
+    
     /**
      * 現在ロードされているモデルに含まれるすべてのアニメーションキー（名前）をコンソールに出力します。
      */
+    /*
     logAvailableAnimationKeys() {
         const gltfUrl = this._lastLoadedUrl;
         
@@ -677,6 +874,7 @@ class SolaGltfParser {
         console.log(`------------------------------------ (合計 ${bakedAnimations.size} 件)`);
     }
 
+    */
 
 
     getNumBones() {
@@ -916,6 +1114,7 @@ class SolaGltfParser {
         console.log('--- インターリーブ配列格納データ (最初の10頂点のみ) ---');
 
         for (let i = 0; i < vertexCount; i++) {
+
             let offset = i * STRIDE_FLOATS;
             
             // ----------------------------------------------------
@@ -939,7 +1138,7 @@ class SolaGltfParser {
             const joint3 = jointData ? jointData[i * 4 + 3] : 0.0;
             
             // 5. BoneWeight (weight0-3)
-            const weight0 = weightData ? weightData[i * 4 + 0] : 1.0;
+            const weight0 = weightData ? weightData[i * 4 + 0] : 0.0;
             const weight1 = weightData ? weightData[i * 4 + 1] : 0.0;
             const weight2 = weightData ? weightData[i * 4 + 2] : 0.0;
             const weight3 = weightData ? weightData[i * 4 + 3] : 0.0;
@@ -959,13 +1158,23 @@ class SolaGltfParser {
             interleavedArray[offset + 6] = nx;
             interleavedArray[offset + 7] = ny;
             interleavedArray[offset + 8] = nz;
-            interleavedArray[offset + 9] = 0.0; 
+            interleavedArray[offset + 9] = 1.0; 
             
-            // 4. BoneID (格納)
-            interleavedArray[offset + 10] = joint0; 
-            interleavedArray[offset + 11] = joint1;
-            interleavedArray[offset + 12] = joint2;
-            interleavedArray[offset + 13] = joint3;
+            // 4. BoneID (格納) ウエイトがあるボーンIDは、IDを+1する。 ボーンIDが１から始まるようにする
+            let addNum0 = 0;
+            let addNum1 = 0;
+            let addNum2 = 0;
+            let addNum3 = 0;
+
+            if (weight0 > 0.0) { addNum0 = 1; }
+            if (weight1 > 0.0) { addNum1 = 1; }
+            if (weight2 > 0.0) { addNum2 = 1; }
+            if (weight3 > 0.0) { addNum3 = 1; }
+
+            interleavedArray[offset + 10] = joint0 + addNum0; 
+            interleavedArray[offset + 11] = joint1 + addNum1;
+            interleavedArray[offset + 12] = joint2 + addNum2;
+            interleavedArray[offset + 13] = joint3 + addNum3;
             
             // 5. BoneWeight (格納)
             interleavedArray[offset + 14] = weight0; 

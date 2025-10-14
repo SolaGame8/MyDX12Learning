@@ -79,16 +79,19 @@ class SolaInputManager {
         // windowでマウスを動かしたときだけ反応するようにします
         window.addEventListener('mousemove', this._mouseHandlerMove);
 
-        // Pointer Lockイベントハンドラの登録
-        this._pointerLockChangeHandler = this._onPointerLockChange.bind(this);
-        document.addEventListener('pointerlockchange', this._pointerLockChangeHandler);
-        document.addEventListener('mozpointerlockchange', this._pointerLockChangeHandler);
-        document.addEventListener('webkitpointerlockchange', this._pointerLockChangeHandler);
 
-        // キャンバスへのクリックでロックを開始
-        this._canvasClickHandler = this.requestPointerLock.bind(this);
-        this.canvas.addEventListener('click', this._canvasClickHandler); // クリックでロック開始
+        if (false) { //画面クリックでカーソルを消したい場合、true
 
+            // Pointer Lockイベントハンドラの登録
+            this._pointerLockChangeHandler = this._onPointerLockChange.bind(this);
+            document.addEventListener('pointerlockchange', this._pointerLockChangeHandler);
+            document.addEventListener('mozpointerlockchange', this._pointerLockChangeHandler);
+            document.addEventListener('webkitpointerlockchange', this._pointerLockChangeHandler);
+
+            // キャンバスへのクリックでロックを開始
+            this._canvasClickHandler = this.requestPointerLock.bind(this);
+            this.canvas.addEventListener('click', this._canvasClickHandler); // クリックでロック開始
+        }
 
 
         // ゲームパッド接続・切断イベントのリスナーを登録
@@ -445,11 +448,7 @@ class SolaInputManager {
         // キーを小文字に統一 (大文字・小文字の区別をなくす)
         const key = e.key.toLowerCase(); 
 
-        // 既存のフルスクリーン切り替えロジック
-        if (key === '\\' || key === '¥') { 
-            this.toggleFullscreen();
-            e.preventDefault(); 
-        }
+
 
         // 監視対象のキーの状態を更新
         // 監視対象のキーかどうかをチェックし、まだ true でない場合のみ true に設定
@@ -486,40 +485,6 @@ class SolaInputManager {
     }
 
 
-
-    /**
-     * フルスクリーン表示とウィンドウ表示を切り替える。
-     */
-    
-    toggleFullscreen() {
-        const doc = document;
-        const fullscreenElement = doc.fullscreenElement || doc.mozFullScreenElement || doc.webkitFullscreenElement || doc.msFullscreenElement;
-
-        if (fullscreenElement) {
-            // フルスクリーンを解除する
-            if (doc.exitFullscreen) {
-                doc.exitFullscreen();
-            } else if (doc.mozCancelFullScreen) {
-                doc.mozCancelFullScreen();
-            } else if (doc.webkitExitFullscreen) {
-                doc.webkitExitFullscreen();
-            } else if (doc.msExitFullscreen) {
-                doc.msExitFullscreen();
-            }
-        } else {
-            // キャンバス要素をフルスクリーンにする
-            const element = this.canvas;
-            if (element.requestFullscreen) {
-                element.requestFullscreen();
-            } else if (element.mozRequestFullScreen) {
-                element.mozRequestFullScreen();
-            } else if (element.webkitRequestFullscreen) {
-                element.webkitRequestFullscreen();
-            } else if (element.msRequestFullscreen) {
-                element.msRequestFullscreen();
-            }
-        }
-    }
 
 
 

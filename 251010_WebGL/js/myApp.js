@@ -122,114 +122,67 @@ window.addEventListener('DOMContentLoaded', async () => { //読み込み完了�
 
     }
 
-    parser.logAvailableAnimationKeys();
-//
 
 
+    //アニメーションを取得
+    let animationData = parser.getAnimationData();
 
 
+    if (animationData && animationData.length > 0) {
 
-    const animeKey = "Armature|Take 001|BaseLayer";
+        //アニメーションデータを取得出来たら
 
-    
-    let matrixArray = parser.getAnimationMatrixArray(animeKey);
-
-
+        gltfMesh.setAnimationData(animationData); //アニメーションデータをモデルにセット
 
 
-    if (!matrixArray) {
-        console.warn(`[logAnimationMatrixData] アニメーションキー "${animeKey}" のデータが見つかりませんでした。`);
-        return;
+        
+        console.log(`------------------------------------ (合計 ${animationData.length} 件)`);
+    } else {
+        console.log("アニメーションデータは読み込まれていませんでした。");
     }
 
-    // 1つの行列は16成分 (Float32)
-    let MATRIX_SIZE = 16; 
-    let LOG_COUNT = 10;
-    let arrayLength = matrixArray.length;
-    
-    // 表示する行列の最大数を決定
-    let numMatricesToLog = Math.min(LOG_COUNT, arrayLength / MATRIX_SIZE);
-
-    console.log(`\n--- アニメーション行列データ: "${animeKey}" (最初の ${numMatricesToLog} 行列) ---`);
-    console.log(`[データの読み取り順: Frame 0, Bone 0, Frame 0, Bone 1, ...]`);
-
-    for (let i = 0; i < numMatricesToLog; i++) {
-        const offset = i * MATRIX_SIZE;
-        
-        // i番目の行列のデータ（16成分）を抽出
-        const currentMatrix = matrixArray.slice(offset, offset + MATRIX_SIZE);
-        
-        // FrameとBoneのIDを推測 (実際には _processAnimationData のロジックに依存)
-        // ここでは便宜上、i番目の行列として表示します。
-        
-        console.log(`\n[Matrix Index: ${i}] (Frame N, Bone M の最終変換行列)`);
-        
-        // 4x4 行列の形式で出力
-        // toFixed(4) で小数点以下4桁に丸めて表示を整形
-        console.log(`  | ${currentMatrix[0].toFixed(4)}  ${currentMatrix[4].toFixed(4)}  ${currentMatrix[8].toFixed(4)}  ${currentMatrix[12].toFixed(4)} |`);
-        console.log(`  | ${currentMatrix[1].toFixed(4)}  ${currentMatrix[5].toFixed(4)}  ${currentMatrix[9].toFixed(4)}  ${currentMatrix[13].toFixed(4)} |`);
-        console.log(`  | ${currentMatrix[2].toFixed(4)}  ${currentMatrix[6].toFixed(4)}  ${currentMatrix[10].toFixed(4)}  ${currentMatrix[14].toFixed(4)} |`);
-        console.log(`  | ${currentMatrix[3].toFixed(4)}  ${currentMatrix[7].toFixed(4)}  ${currentMatrix[11].toFixed(4)}  ${currentMatrix[15].toFixed(4)} |`);
-    }
-    
-    console.log('------------------------------------------------------------');
 
 
+    await parser.loadModel('./gltf/chicken_jump.gltf'); //ジャンプのアニメーションを読み込み
 
-    const maxFrames = parser.getMaxFrameNum(animeKey); 
-    console.log(`${animeKey} 🚨アニメーションの総フレーム数: ${maxFrames}`); 
-
-    const numBones = parser.getNumBones();
-    const totalElements = maxFrames * numBones * 16; 
-    console.log(`🚨ボーン数: ${numBones}`); 
-    console.log(`🚨Float32Arrayの合計要素数: ${totalElements}`);
+    let animationData2 = parser.getAnimationData();
 
 
-    matrixArray = parser.getInverseBoneMatrixArray();
-    
-    if (!matrixArray) {
-        console.warn('[logInverseMatrixData] Inverse Bind Matrix (IBM) のデータが見つかりませんでした。');
-        return;
+    if (animationData2 && animationData2.length > 0) {
+
+        //アニメーションデータを取得出来たら
+
+        gltfMesh.setAnimationData(animationData2); //アニメーションデータをモデルにセット
     }
 
-    // 1つの行列は16成分 (Float32)
-    MATRIX_SIZE = 16; 
-    LOG_COUNT = 10;
-    arrayLength = matrixArray.length;
-    
-    // 表示する行列の最大数を決定
-    numMatricesToLog = Math.min(LOG_COUNT, arrayLength / MATRIX_SIZE);
 
-    console.log(`\n--- Inverse Bind Matrix (IBM) データ (最初の ${numMatricesToLog} 行列) ---`);
-    console.log(`[データの読み取り順: Bone 0, Bone 1, ...]`);
-
-    for (let i = 0; i < numMatricesToLog; i++) {
-        const offset = i * MATRIX_SIZE;
-        
-        // i番目のIBM行列のデータ（16成分）を抽出
-        const currentMatrix = matrixArray.slice(offset, offset + MATRIX_SIZE);
-        
-        // iはボーンインデックス (Bone ID) に対応します
-        console.log(`\n[Bone ID: ${i}] (Inverse Bind Matrix)`);
-        
-        // 4x4 行列の形式で出力
-        // toFixed(4) で小数点以下4桁に丸めて表示を整形
-        console.log(`  | ${currentMatrix[0].toFixed(4)}  ${currentMatrix[4].toFixed(4)}  ${currentMatrix[8].toFixed(4)}  ${currentMatrix[12].toFixed(4)} |`);
-        console.log(`  | ${currentMatrix[1].toFixed(4)}  ${currentMatrix[5].toFixed(4)}  ${currentMatrix[9].toFixed(4)}  ${currentMatrix[13].toFixed(4)} |`);
-        console.log(`  | ${currentMatrix[2].toFixed(4)}  ${currentMatrix[6].toFixed(4)}  ${currentMatrix[10].toFixed(4)}  ${currentMatrix[14].toFixed(4)} |`);
-        console.log(`  | ${currentMatrix[3].toFixed(4)}  ${currentMatrix[7].toFixed(4)}  ${currentMatrix[11].toFixed(4)}  ${currentMatrix[15].toFixed(4)} |`);
-    }
-    
-    console.log('------------------------------------------------------------');
+    let animationKey = gltfMesh.getAnimationKey();
 
 
+
+    animationData = null;
+    animationData2 = null;
 
     //＊これは必ず呼ぶ！    jsにデストラクタは無い
 
-    parser.removeModelData();
+    
+    parser.removeModelData();   //パーサー削除
 
 
 
+    
+    console.log("--- 🚨 読み込まれたアニメーションキー一覧 ---");
+    
+    for (let i = 0; i < animationKey.length; i++) {    //animationData.length アニメーション数
+        //const anim = animationKey[i];
+        //const animKey = anim.animationNameKey;  //アニメーションキー（これを指定してアニメーションを再生）
+
+        const animKey = animationKey[i];
+
+
+        //console.log(`🚨 [${i}] Key: "${animKey}", Frames: ${anim.maxKeyframeCount}, Total Bones: ${anim.boneCount}`);
+        console.log(`🚨 [${i}] Key: "${animKey}"`);
+    }
 
 
 
@@ -491,7 +444,7 @@ window.addEventListener('DOMContentLoaded', async () => { //読み込み完了�
     rng.setSeed(12345);
 
     const floorSize = 20.0;
-    for (i=0; i<15; i++) {
+    for (let i=0; i<15; i++) {
 
             let r = rng.getRandom();//0.0 - 1.0
             let x = (r - 0.5) * floorSize * 2.0;
@@ -534,7 +487,7 @@ window.addEventListener('DOMContentLoaded', async () => { //読み込み完了�
     // ノイズを生成
     rng.setSeed(557);
 
-    for (i=0; i<15; i++) {
+    for (let i=0; i<15; i++) {
 
             let r = rng.getRandom();//0.0 - 1.0
             let x = (r - 0.5) * floorSize * 2.0;
@@ -578,7 +531,7 @@ window.addEventListener('DOMContentLoaded', async () => { //読み込み完了�
     // ノイズを生成
     rng.setSeed(963);
 
-    for (i=0; i<30; i++) {
+    for (let i=0; i<30; i++) {
 
             let r = rng.getRandom();//0.0 - 1.0
             let x = (r - 0.5) * floorSize * 2.0;
@@ -620,7 +573,7 @@ window.addEventListener('DOMContentLoaded', async () => { //読み込み完了�
     // ノイズを生成
     rng.setSeed(1379);
 
-    for (i=0; i<200; i++) {
+    for (let i=0; i<200; i++) {
 
             let r = rng.getRandom();//0.0 - 1.0
             let x = (r - 0.5) * floorSize * 2.0;
@@ -972,6 +925,9 @@ window.addEventListener('DOMContentLoaded', async () => { //読み込み完了�
 
     let isOnGround = false;
 
+    let isWalk = false;
+    let isJump = false;
+
 
     //ループ
     const render = () => {
@@ -1059,11 +1015,40 @@ window.addEventListener('DOMContentLoaded', async () => { //読み込み完了�
 
             const walkSpeed = 10.0;
 
-            charaPos.x += vecForward.x * walkSpeed * deltaTime * (-moveVal.y);
-            charaPos.z += vecForward.y * walkSpeed * deltaTime * (-moveVal.y);
+            deltaX = 0.0;
+            deltaZ = 0.0;
 
-            charaPos.x += vecRight.x * walkSpeed * deltaTime * moveVal.x;
-            charaPos.z += vecRight.y * walkSpeed * deltaTime * moveVal.x;
+            deltaX += vecForward.x * walkSpeed * deltaTime * (-moveVal.y);
+            deltaZ += vecForward.y * walkSpeed * deltaTime * (-moveVal.y);
+
+            deltaX += vecRight.x * walkSpeed * deltaTime * moveVal.x;
+            deltaZ += vecRight.y * walkSpeed * deltaTime * moveVal.x;
+
+            charaPos.x += deltaX;
+            charaPos.z += deltaZ;
+
+            if (moveVal.x != 0.0 || moveVal.y != 0.0) {
+
+                //移動している場合
+
+                if (!isWalk && isOnGround) {
+                    if (animationKey.length > 0) {
+                        gltfMesh.playAnimation(animationKey[0], true);//アニメーションキー, Loopフラグ
+                    }
+                }
+                isWalk = true;
+
+                //キャラクターを進行方向に回転
+                const moveRotationRad = Math.atan2(deltaX, deltaZ);
+                charaRot.y = moveRotationRad * 180.0 / Math.PI;
+
+            } else {
+                if (isWalk) {
+                    gltfMesh.stopAnimation();   //アニメーションストップ
+                }
+                isWalk = false;
+            }
+
 
 
 
@@ -1093,9 +1078,19 @@ window.addEventListener('DOMContentLoaded', async () => { //読み込み完了�
             if (flg_jump){
                 if (isOnGround) {
 
+
+                    isJump = true;
+
                     charaAcc.y = 0.3;
                         //wgl.soundManager.playSound(bgm001Key, 0.02, false);
                     wgl.soundManager.playSound(sound003Key, 0.05, false);
+
+                    if (!isWalk && isOnGround) {
+                        if (animationKey.length > 1) {
+                            gltfMesh.playAnimation(animationKey[1], false);//アニメーションキー, Loopフラグ
+                        }
+                    }
+                
 
                 }
             }
@@ -1112,6 +1107,12 @@ window.addEventListener('DOMContentLoaded', async () => { //読み込み完了�
             if (charaPos.y < charaFloorY) {
                 charaPos.y = charaFloorY;
                 charaAcc.y = 0.0;
+
+                if (isJump) {
+                    gltfMesh.stopAnimation();
+                }
+
+                isJump = false;
                 isOnGround = true;
             } else {
                 isOnGround = false;
@@ -1129,6 +1130,12 @@ window.addEventListener('DOMContentLoaded', async () => { //読み込み完了�
             cameraRot.y -= stickR.x * stickRotRate;
             cameraRot.x += stickR.y * stickRotRate;
 
+
+            // 既存のフルスクリーン切り替え
+            if (wgl.inputManager.onPushKey('1')) {
+                wgl.toggleFullscreen();
+            }
+
             //音楽再生
 
             if (wgl.inputManager.onPushKey('1')) {
@@ -1140,6 +1147,10 @@ window.addEventListener('DOMContentLoaded', async () => { //読み込み完了�
             if (wgl.inputManager.onPushKey('3')) {
                 wgl.soundManager.stopMusic(3.0);
             }
+
+            
+
+            
 
 
             // ------------------------------
@@ -1212,28 +1223,28 @@ window.addEventListener('DOMContentLoaded', async () => { //読み込み完了�
             floorMesh.draw(wgl);
 
             //tree001
-            for (i=0; i<tree001_posArray.length; i++) {
+            for (let i=0; i<tree001_posArray.length; i++) {
                 treeMesh001.setPosition(tree001_posArray[i].x, tree001_posArray[i].y, tree001_posArray[i].z);
                 treeMesh001.setRotation(0.0, tree001_posArray[i].rot, 0.0);
                 treeMesh001.setScale(0.5, 0.5, 0.5);
                 treeMesh001.draw(wgl);
             }
             //tree002
-            for (i=0; i<tree002_posArray.length; i++) {
+            for (let i=0; i<tree002_posArray.length; i++) {
                 treeMesh002.setPosition(tree002_posArray[i].x, tree002_posArray[i].y, tree002_posArray[i].z);
                 treeMesh002.setRotation(0.0, tree002_posArray[i].rot, 0.0);
                 treeMesh002.setScale(0.5, 0.5, 0.5);
                 treeMesh002.draw(wgl);
             }
             //stone001
-            for (i=0; i<stone001_posArray.length; i++) {
+            for (let i=0; i<stone001_posArray.length; i++) {
                 stoneMesh001.setPosition(stone001_posArray[i].x, stone001_posArray[i].y, stone001_posArray[i].z);
                 stoneMesh001.setRotation(0.0, stone001_posArray[i].rot, 0.0);
                 stoneMesh001.setScale(0.3, 0.3, 0.3);
                 stoneMesh001.draw(wgl);
             }
             //grass001
-            for (i=0; i<grass001_posArray.length; i++) {
+            for (let i=0; i<grass001_posArray.length; i++) {
                 grassMesh001.setPosition(grass001_posArray[i].x, grass001_posArray[i].y, grass001_posArray[i].z);
                 grassMesh001.setRotation(0.0, grass001_posArray[i].rot, 0.0);
                 grassMesh001.setScale(0.3, 0.3, 0.3);
