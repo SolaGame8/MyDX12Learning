@@ -4,8 +4,8 @@
 //attribute vec4 a_position;  //座標
 //attribute vec2 a_texcoord;  //UV
 //attribute vec4 a_normal;    //法線
-//attribute vec4 a_boneID;    //ボーンID
-//attribute vec4 a_boneWeight;//ボーンウエイト
+//attribute vec4 a_boneID;    //ボーンID    4
+//attribute vec4 a_boneWeight;//ボーンウエイト  4
 
 layout(location = 0) in vec4 a_position;    //座標をロケーション0に固定
 layout(location = 1) in vec2 a_texcoord;    //UVをロケーション1に固定
@@ -34,7 +34,7 @@ out vec4 v_normal;
 void main() {
 
     //ボーンの計算
-    mat4 skinningMatrix = mat4(1.0);    //変形しない正規行列
+    mat4 skinningMatrix = mat4(1.0);    //変形しない単位行列
 
     const float boneMax = 128.0;
 

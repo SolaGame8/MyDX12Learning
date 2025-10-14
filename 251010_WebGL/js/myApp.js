@@ -1130,12 +1130,12 @@ window.addEventListener('DOMContentLoaded', async () => { //読み込み完了�
             cameraRot.y -= stickR.x * stickRotRate;
             cameraRot.x += stickR.y * stickRotRate;
 
-
+            /*
             // 既存のフルスクリーン切り替え
             if (wgl.inputManager.onPushKey('1')) {
                 wgl.toggleFullscreen();
             }
-
+            */
             //音楽再生
 
             if (wgl.inputManager.onPushKey('1')) {
