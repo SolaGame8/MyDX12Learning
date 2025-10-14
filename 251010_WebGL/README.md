@@ -48,7 +48,6 @@ HTML 側（例: `index.html`）で `canvas` を用意します。
 `main.js` で初期化とメインループを組みます。
 
 ```js
-import { SolaWGL } from './solaWGL.js';
 
 window.addEventListener('DOMContentLoaded', async () => {
   const wgl = new SolaWGL('glCanvas'); // HTML の canvas の ID を渡して初期化
