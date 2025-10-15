@@ -5,7 +5,7 @@
 This is my personal learning repository for DirectX 12.
 
 GITHUB Pages
-<a href="https://solagame8.github.io/MyDX12Learning/" terget="_blank">https://solagame8.github.io/MyDX12Learning/</a>
+<a href="https://solagame8.github.io/MyDX12Learning/" target="_blank">https://solagame8.github.io/MyDX12Learning/</a>
 
 ---
 
