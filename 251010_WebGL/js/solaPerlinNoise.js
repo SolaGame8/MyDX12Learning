@@ -5,14 +5,11 @@
  * Improved Perlin Noiseアルゴリズムを使用
  */
 class solaPerlinNoise {
+
+
     // 順列配列
     p = [];
 
-    // 擬似乱数ジェネレータ (PRNG) のための関数を定義
-    // シード値から決定論的な乱数を生成するシンプルなロジック (e.g., LCGやXORShiftの変種)
-    // C++のstd::mt19937の代わりに使用します。
-    // Math.random()はシード制御できないため、ここではシンプルな LCG を使用します。
-    // シードは32ビット符号なし整数として扱われます。
 
     createPrng(seed) {
         let currentSeed = seed >>> 0; // 32bit unsigned intに変換

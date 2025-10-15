@@ -7,42 +7,27 @@
 window.addEventListener('DOMContentLoaded', async () => { //読み込み完了後
 
 
-    /*
-    // 1. FPS計測用変数の定義
-    let frameCount = 0;
-    let lastTime = performance.now();
-    const FPS_UPDATE_INTERVAL = 1000; // 1000ms (1秒) ごとに更新
-    */
-
-    //FPS表示
+    // メッセージ表示エリア（HTML）
     const messageArea = document.getElementById('messageArea'); // HTML要素を取得
 
-
-
-    // Canvas ID を指定して SolaWGL ヘルパーを初期化
+    // Canvas ID (HTML) を指定して SolaWGL を初期化
     const wgl = new SolaWGL('glCanvas');
 
 
-    // 非同期処理: SolaWGLの非同期初期化を待つ (シェーダーファイルの読み込みを含む)
+    // SolaWGLの非同期初期化を待つ
     const isReady = await wgl.init();
     if (!isReady) {
         console.error("アプリケーションの初期化に失敗しました");
         return;
     }
 
-    /*
-    if (!wgl.isReady()) {
-        return;
-    }
-*/
     
-    messageArea.textContent = `loading: 0 %`;
+    messageArea.textContent = `loading: 0 %`;    // メッセージ表示（画面左上）
 
 
-    //キー検知の登録
+    //キー検知の登録（ここで登録しているもののキーイベントが取得できます）
 
-    wgl.inputManager.addKeyToTrack([' ', '1', '2', '3'
-        , 'w', 'a', 's', 'd']);
+    wgl.inputManager.addKeyToTrack([' ', '1', '2', '3' , 'w', 'a', 's', 'd', 'f']);
 
 
     //サウンド読み込み
@@ -93,39 +78,37 @@ window.addEventListener('DOMContentLoaded', async () => { //読み込み完了�
     
     messageArea.textContent = `loading: 30 %`;
 
+
+
     //glTFロード
-    let parser = wgl.gltfParser;
-    //const meshDataList = await wgl.gltfParser.loadModel('./gltf/chicken_walk.gltf');
-    const meshDataList = await parser.loadModel('./gltf/chicken_walk.gltf');
+
+    let parser = wgl.gltfParser; //パーサー
 
 
+    const meshDataList = await parser.loadModel('./gltf/chicken_walk.gltf'); //歩きのデータ（ポリゴンも入っています）
 
 
     //3Dモデル作成
     let gltfMesh = new SolaMesh(this);
 
     {
-        gltfMesh.setMeshDataList(meshDataList);
 
+        gltfMesh.setMeshDataList(meshDataList); //読みこんだgltfを3Dモデルにセットする
+        gltfMesh.buildMesh(wgl);    // モデルをビルド（セットしたデータを使えるようにする）
 
-        messageArea.textContent = `loading: 50 %`;
-
-
-
-        // モデルをビルド
-        gltfMesh.buildMesh(wgl);
+        gltfMesh.setTextureKey(checkenTextureKey);//テクスチャーをセット（上記で読み込んだもののキーを渡す）
 
         gltfMesh.setScale(1.0, 1.0, 1.0);
 
-        //テクスチャーをセット
-        gltfMesh.setTextureKey(checkenTextureKey);
 
+        messageArea.textContent = `loading: 50 %`;
+        
     }
 
 
 
     //アニメーションを取得
-    let animationData = parser.getAnimationData();
+    let animationData = parser.getAnimationData();  //ポリゴンと一緒に入っている歩きのアニメーションも取得する
 
 
     if (animationData && animationData.length > 0) {
@@ -135,15 +118,16 @@ window.addEventListener('DOMContentLoaded', async () => { //読み込み完了�
         gltfMesh.setAnimationData(animationData); //アニメーションデータをモデルにセット
 
 
-        
-        console.log(`------------------------------------ (合計 ${animationData.length} 件)`);
+        console.log(`アニメーションデータ読み込み (合計 ${animationData.length} 件)`);
+
     } else {
+
         console.log("アニメーションデータは読み込まれていませんでした。");
     }
 
 
 
-    await parser.loadModel('./gltf/chicken_jump.gltf'); //ジャンプのアニメーションを読み込み
+    await parser.loadModel('./gltf/chicken_jump.gltf'); //引き続き、同じパーサーでジャンプのアニメーションを読み込み
 
     let animationData2 = parser.getAnimationData();
 
@@ -156,32 +140,27 @@ window.addEventListener('DOMContentLoaded', async () => { //読み込み完了�
     }
 
 
-    let animationKey = gltfMesh.getAnimationKey();
-
-
-
+    //もう渡したデータは変数から削除
     animationData = null;
     animationData2 = null;
 
-    //＊これは必ず呼ぶ！    jsにデストラクタは無い
 
-    
-    parser.removeModelData();   //パーサー削除
+    //＊これは必ず呼ぶ！
+    parser.removeModelData();   //パーサーの情報削除（もう使わない情報を削除）
 
 
+
+    let animationKey = gltfMesh.getAnimationKey(); //現在、モデルに入れてある「アニメーション キー」の一覧
 
     
     console.log("--- 🚨 読み込まれたアニメーションキー一覧 ---");
     
     for (let i = 0; i < animationKey.length; i++) {    //animationData.length アニメーション数
-        //const anim = animationKey[i];
-        //const animKey = anim.animationNameKey;  //アニメーションキー（これを指定してアニメーションを再生）
 
         const animKey = animationKey[i];
 
-
-        //console.log(`🚨 [${i}] Key: "${animKey}", Frames: ${anim.maxKeyframeCount}, Total Bones: ${anim.boneCount}`);
-        console.log(`🚨 [${i}] Key: "${animKey}"`);
+        console.log(`🚨 [${i}] Key: "${animKey}"`); //歩き、ジャンプ、を再生する時に使うキーが入っています
+        // （もともとアニメーションを作った時の名前がキーとして使われています）
     }
 
 
@@ -189,12 +168,12 @@ window.addEventListener('DOMContentLoaded', async () => { //読み込み完了�
 
 
 
-    //床モデル作成
+    //床モデル作成（地形）
 
     let floorMesh = new SolaMesh(this);
 
     const noiseSeed = 1234; 
-    const perlin = new solaPerlinNoise(noiseSeed);
+    const perlin = new solaPerlinNoise(noiseSeed);  //パーリンノイズ
 
     // ノイズのスケール（周波数）: 小さいほどノイズが広がり、大きいほど細かくなる
     const noiseScale = 0.1; 
@@ -232,6 +211,7 @@ window.addEventListener('DOMContentLoaded', async () => { //読み込み完了�
      * @returns {number[]} 正規化された法線ベクトル [nx, ny, nz]
      */
     function calculateNormal(x, z) {
+
         // 1. X方向の傾き（接線ベクトル Tx）を計算
         // 微小にXをずらした点の高さを取得
         const hX_plus = calculateHeight(x + EPSILON, z);
@@ -257,7 +237,6 @@ window.addEventListener('DOMContentLoaded', async () => { //読み込み完了�
         const Tz_z = 2.0 * EPSILON;
         
         // 3. 外積 (Cross Product) で法線を計算: N = Tz x Tx (右上向き)
-        // 地形の上向きを外側にしたいので、(Tz x Tx) が妥当です。
         // Tx = (Tx_x, Tx_y, 0)
         // Tz = (0, Tz_y, Tz_z)
         
@@ -284,6 +263,7 @@ window.addEventListener('DOMContentLoaded', async () => { //読み込み完了�
         // 地形の「上側」が外側を向くように、nyが正であることを保証する
         // Tx x Tz の計算では ny が負になることが多い（右手座標系の場合）ため、
         // nyが負であれば、ベクトル全体を反転させることで、法線を上向き（内側から外側）にする。
+
         if (ny < 0) {
             nx = -nx;
             ny = -ny;
@@ -346,7 +326,7 @@ window.addEventListener('DOMContentLoaded', async () => { //読み込み完了�
                 // 頂点順序：左下、右下、左上、右上 (時計回り、y=0面を上から見た場合)
                 // ----------------------------------------------------
 
-                // 1. 左下 (P0)
+                // 左下 (P0)
                 floorMesh.addVertexData({
                     position: [x0, y00, z0],
                     uv: [0.0, 1.0], // U:0.0, V:1.0 (UVの左下)
@@ -355,7 +335,7 @@ window.addEventListener('DOMContentLoaded', async () => { //読み込み完了�
                     boneWeights: boneWeights
                 });
 
-                // 2. 右下 (P1)
+                // 右下 (P1)
                 floorMesh.addVertexData({
                     position: [x1, y10, z0],
                     uv: [1.0, 1.0], // U:1.0, V:1.0 (UVの右下)
@@ -364,7 +344,7 @@ window.addEventListener('DOMContentLoaded', async () => { //読み込み完了�
                     boneWeights: boneWeights
                 });
 
-                // 3. 左上 (P2)
+                // 左上 (P2)
                 floorMesh.addVertexData({
                     position: [x0, y01, z1],
                     uv: [0.0, 0.0], // U:0.0, V:0.0 (UVの左上)
@@ -373,7 +353,7 @@ window.addEventListener('DOMContentLoaded', async () => { //読み込み完了�
                     boneWeights: boneWeights
                 });
 
-                // 4. 右上 (P3)
+                // 右上 (P3)
                 floorMesh.addVertexData({
                     position: [x1, y11, z1],
                     uv: [1.0, 0.0], // U:1.0, V:0.0 (UVの右上)
@@ -439,9 +419,12 @@ window.addEventListener('DOMContentLoaded', async () => { //読み込み完了�
 
     const tree001_posArray = []; // 可変長の配列を初期化 (pushでデータ数を可変にする)
 
-    // ノイズを生成
-    const rng = new solaRandomGenerator();
+
+    // 乱数を生成
+
+    const rng = new solaRandomGenerator();  //シード値が同じなら、毎回同じ乱数が出ます
     rng.setSeed(12345);
+
 
     const floorSize = 20.0;
     for (let i=0; i<15; i++) {
@@ -484,8 +467,9 @@ window.addEventListener('DOMContentLoaded', async () => { //読み込み完了�
 
     const tree002_posArray = []; // 可変長の配列を初期化 (pushでデータ数を可変にする)
 
-    // ノイズを生成
-    rng.setSeed(557);
+
+    // 乱数を生成
+    rng.setSeed(557);   //シード値が同じなら、毎回同じ乱数が出ます
 
     for (let i=0; i<15; i++) {
 
@@ -528,7 +512,7 @@ window.addEventListener('DOMContentLoaded', async () => { //読み込み完了�
 
     const stone001_posArray = []; // 可変長の配列を初期化 (pushでデータ数を可変にする)
 
-    // ノイズを生成
+    // 乱数を生成
     rng.setSeed(963);
 
     for (let i=0; i<30; i++) {
@@ -570,7 +554,7 @@ window.addEventListener('DOMContentLoaded', async () => { //読み込み完了�
 
     const grass001_posArray = []; // 可変長の配列を初期化 (pushでデータ数を可変にする)
 
-    // ノイズを生成
+    // 乱数を生成
     rng.setSeed(1379);
 
     for (let i=0; i<200; i++) {
@@ -595,7 +579,7 @@ window.addEventListener('DOMContentLoaded', async () => { //読み込み完了�
 
 
 
-
+    //空の球体
 
     let sphereMesh = new SolaMesh(this);
 
@@ -659,9 +643,6 @@ window.addEventListener('DOMContentLoaded', async () => { //読み込み完了�
 
                 normals.push(nx, ny, nz);
 
-                // SolaMesh.addVertexDataに直接渡すのではなく、一時配列に蓄積
-                // これにより、SolaMeshのaddVertexDataが大量に呼ばれるのを避ける
-                // もしSolaMeshが直接頂点配列を受け取れない場合は、下のループでaddVertexDataを呼ぶ
             }
         }
 
@@ -721,12 +702,10 @@ window.addEventListener('DOMContentLoaded', async () => { //読み込み完了�
         // 立方体は6面で構成され、各面は2つの三角形（4つの頂点）で構成されます。
         // 面ごとに法線とUV座標を正しく設定するため、頂点は重複して定義します。（合計 6面 * 4頂点 = 24頂点）
 
-        // 頂点データ: { position: [x, y, z], uv: [u, v], normal: [nx, ny, nz], ... }
-        // boneIDs/boneWeights はスケルタルアニメーション用ですが、今回は全て 0.0 で固定
         const boneData = { boneIDs: [0.0, 0.0, 0.0, 0.0], boneWeights: [0.0, 0.0, 0.0, 0.0] };
 
         // -----------------------------------------------------------
-        // 1. 正面 (Front: Z+)
+        // 正面 (Front: Z+)
         // -----------------------------------------------------------
         // A: 右上 (1, 1, 1)
         cubeMesh.addVertexData({ position: [ 1.0,  1.0,  1.0 ], uv: [ 1.0, 0.0 ], normal: [ 0.0, 0.0, 1.0 ], ...boneData });
@@ -738,7 +717,7 @@ window.addEventListener('DOMContentLoaded', async () => { //読み込み完了�
         cubeMesh.addVertexData({ position: [-1.0, -1.0,  1.0 ], uv: [ 0.0, 1.0 ], normal: [ 0.0, 0.0, 1.0 ], ...boneData });
 
         // -----------------------------------------------------------
-        // 2. 背面 (Back: Z-)
+        // 背面 (Back: Z-)
         // -----------------------------------------------------------
         // E: 左上 (-1, 1, -1)
         cubeMesh.addVertexData({ position: [-1.0,  1.0, -1.0 ], uv: [ 1.0, 0.0 ], normal: [ 0.0, 0.0, -1.0 ], ...boneData });
@@ -750,7 +729,7 @@ window.addEventListener('DOMContentLoaded', async () => { //読み込み完了�
         cubeMesh.addVertexData({ position: [ 1.0, -1.0, -1.0 ], uv: [ 0.0, 1.0 ], normal: [ 0.0, 0.0, -1.0 ], ...boneData });
 
         // -----------------------------------------------------------
-        // 3. 右面 (Right: X+)
+        // 右面 (Right: X+)
         // -----------------------------------------------------------
         // A: 右上(前) (1, 1, 1)
         cubeMesh.addVertexData({ position: [ 1.0,  1.0,  1.0 ], uv: [ 0.0, 0.0 ], normal: [ 1.0, 0.0, 0.0 ], ...boneData });
@@ -762,7 +741,7 @@ window.addEventListener('DOMContentLoaded', async () => { //読み込み完了�
         cubeMesh.addVertexData({ position: [ 1.0, -1.0, -1.0 ], uv: [ 1.0, 1.0 ], normal: [ 1.0, 0.0, 0.0 ], ...boneData });
 
         // -----------------------------------------------------------
-        // 4. 左面 (Left: X-)
+        // 左面 (Left: X-)
         // -----------------------------------------------------------
         // B: 左上(前) (-1, 1, 1)
         cubeMesh.addVertexData({ position: [-1.0,  1.0,  1.0 ], uv: [ 1.0, 0.0 ], normal: [-1.0, 0.0, 0.0 ], ...boneData });
@@ -774,7 +753,7 @@ window.addEventListener('DOMContentLoaded', async () => { //読み込み完了�
         cubeMesh.addVertexData({ position: [-1.0, -1.0, -1.0 ], uv: [ 0.0, 1.0 ], normal: [-1.0, 0.0, 0.0 ], ...boneData });
 
         // -----------------------------------------------------------
-        // 5. 上面 (Top: Y+)
+        // 上面 (Top: Y+)
         // -----------------------------------------------------------
         // B: 左上(前) (-1, 1, 1)
         cubeMesh.addVertexData({ position: [-1.0,  1.0,  1.0 ], uv: [ 0.0, 1.0 ], normal: [ 0.0, 1.0, 0.0 ], ...boneData });
@@ -786,7 +765,7 @@ window.addEventListener('DOMContentLoaded', async () => { //読み込み完了�
         cubeMesh.addVertexData({ position: [ 1.0,  1.0, -1.0 ], uv: [ 1.0, 0.0 ], normal: [ 0.0, 1.0, 0.0 ], ...boneData });
 
         // -----------------------------------------------------------
-        // 6. 底面 (Bottom: Y-)
+        // 底面 (Bottom: Y-)
         // -----------------------------------------------------------
         // D: 左下(前) (-1, -1, 1)
         cubeMesh.addVertexData({ position: [-1.0, -1.0,  1.0 ], uv: [ 0.0, 0.0 ], normal: [ 0.0, -1.0, 0.0 ], ...boneData });
@@ -805,45 +784,10 @@ window.addEventListener('DOMContentLoaded', async () => { //読み込み完了�
         for (let i = 0; i < 6; i++) {
             const offset = i * 4; // 各面の開始インデックス (0, 4, 8, 12, 16, 20)
             
-            // 1つ目の三角形 (左上、右上、左下)
             cubeMesh.addIndexData(offset + 1, offset + 0, offset + 2); 
-            // 2つ目の三角形 (左上、右下、右上) ※時計回りまたは反時計回りで定義
-
-            // 左下、右上、右下
             cubeMesh.addIndexData(offset + 2, offset + 0, offset + 3);
-
-            // ※一般的に (0, 1, 2), (2, 3, 0) と定義しますが、ここでは上の定義に合わせました。
-            // (0: 右上, 1: 左上, 2: 右下, 3: 左下) の場合:
-            // (1, 0, 2) と (1, 2, 3) が適切です。（面によっては順序が変わります）
-            
-            // 正しい定義（頂点の並び順に依存）
-            // 矩形を構成する4頂点を (v0, v1, v2, v3) とした場合、
-            // v0 --- v1
-            // |      |
-            // v2 --- v3
-            // の順なら (0, 2, 3), (0, 3, 1) または (1, 0, 2), (1, 2, 3)
-
-            // 今回の頂点定義順:
-            // [0]: 右上, [1]: 左上, [2]: 右下, [3]: 左下
-
-            // 1つ目の三角形 (右上(0), 左上(1), 左下(3))
-            // cubeMesh.addIndexData(offset + 0, offset + 1, offset + 3);
-
-            // 2つ目の三角形 (右上(0), 左下(3), 右下(2))
-            // cubeMesh.addIndexData(offset + 0, offset + 3, offset + 2);
-            
-            // 上記のインデックス定義をコメントアウトし、既存のコードに似た形式で定義
-            // (0, 1, 2) と (2, 1, 3) の組み合わせ
-            // cubeMesh.addIndexData(offset + 0, offset + 1, offset + 2); // 右上、左上、右下
-            // cubeMesh.addIndexData(offset + 2, offset + 1, offset + 3); // 右下、左上、左下
-
-            // ※最初の定義 (offset + 1, offset + 0, offset + 2) と (offset + 2, offset + 0, offset + 3) を使用します
-            // (1, 0, 2) と (2, 0, 3) - 面ごとに確認しながら調整してください。
-            // 多くの場合は (0, 1, 2) と (2, 3, 0) のような順序になります。
-            // 正面 (Z+) は、外側から見て反時計回りになるようにします。
-            // (1. 左上, 0. 右上, 2. 右下) と (1. 左上, 2. 右下, 3. 左下) が一般的
-            cubeMesh.addIndexData(offset + 1, offset + 0, offset + 2); // 左上, 右上, 右下
-            cubeMesh.addIndexData(offset + 1, offset + 2, offset + 3); // 左上, 右下, 左下
+            cubeMesh.addIndexData(offset + 1, offset + 0, offset + 2);
+            cubeMesh.addIndexData(offset + 1, offset + 2, offset + 3);
         }
 
 
@@ -894,19 +838,11 @@ window.addEventListener('DOMContentLoaded', async () => { //読み込み完了�
     messageArea.textContent = `loading: 100 %`;
 
 
-    wgl.setFpsLimit(80);
+    wgl.setFpsLimit(80);    //FPS制限（時間情報の取得の精度によって実際のfpsが変わるので、実際に60くらいになるように数値を入れています）
 
-    //wgl.update();//情報の更新
 
     wgl.setClearColor(0.6, 0.8, 0.9, 1.0);  //クリア色の設定 (R, G, B, A)
 
-    //wgl.draw();
-
-    //console.log("WebGLコンテキストが初期化され、キャンバスがクリアされました。");
-
-    
-    // 2. メッセージボックスが繰り返し表示されるのを防ぐための状態変数
-    //let wasAPressed = false; 
 
 
 
@@ -932,38 +868,16 @@ window.addEventListener('DOMContentLoaded', async () => { //読み込み完了�
     //ループ
     const render = () => {
 
-        /*
-        // 2. FPS計測ロジック
-        frameCount++;
-        const currentTime = performance.now();
-        const deltaTime = currentTime - lastTime;
 
-        if (deltaTime >= FPS_UPDATE_INTERVAL) {
-            // FPSを計算: フレーム数 / (経過時間 / 1000)
-            const fps = Math.round(frameCount / (deltaTime / 1000));
-            
-            // HTML要素を更新
-            if (fpsElement) {
-                fpsElement.textContent = `FPS: ${fps}`;
-            }
+        const flg_Update = wgl.update();    //ここで、次のフレームの描画が出来る場合
 
-            // カウンターをリセット
-            frameCount = 0;
-            lastTime = currentTime; 
-        }
-        */
-
-
-
-        const flg_Update = wgl.update();
-
-        if (flg_Update) {
+        if (flg_Update) {   //描画処理をする
 
             //DeltaTime
             const deltaTime = wgl.getDeltaTime();
 
 
-            // HTML要素を更新
+            // メッセージ欄（HTML）にFPS情報を表示
             if (messageArea) {
                 const fps = wgl.getFps();
                 messageArea.textContent = `FPS: ${fps}`;
@@ -971,6 +885,7 @@ window.addEventListener('DOMContentLoaded', async () => { //読み込み完了�
 
 
 
+            //キャラクターの移動
 
             //左スティック
             const stickL = wgl.inputManager.getStickValue('L', 0.15);
@@ -1001,17 +916,10 @@ window.addEventListener('DOMContentLoaded', async () => { //読み込み完了�
 
             
             //カメラから見た、前方ベクトル、右ベクトル
-            //let vecForward = { x: -Math.sin(-cameraRot.y * Math.PI / 180.0) , y: Math.cos(-cameraRot.y * Math.PI / 180.0) };
-            //let vecRight = { x: Math.cos(-cameraRot.y * Math.PI / 180.0) , y: Math.sin(-cameraRot.y * Math.PI / 180.0) };
-
 
             let vecForward = { x: -Math.sin(cameraRot.y * Math.PI / 180.0) , y: -Math.cos(cameraRot.y * Math.PI / 180.0) };
             let vecRight = { x:Math.cos(cameraRot.y * Math.PI / 180.0) , y: -Math.sin(cameraRot.y * Math.PI / 180.0) };
 
-            //0 0,-1    //1,0
-            //90 -1,0   //0,-1
-            //180 0,1   //-1,0
-            //270 1,0   //0,1
 
             const walkSpeed = 10.0;
 
@@ -1052,7 +960,7 @@ window.addEventListener('DOMContentLoaded', async () => { //読み込み完了�
 
 
 
-            // --- Aボタン入力チェック ---
+            // --- コントローラーAボタン入力チェック ---
 
             let flg_jump = false;
             if (typeof BUTTONS !== 'undefined') { // BUTTONS定数が読み込まれているかチェック
@@ -1060,16 +968,12 @@ window.addEventListener('DOMContentLoaded', async () => { //読み込み完了�
 
                 if (isAPressed) {
 
-
                     flg_jump = true;
-
-
                 }
 
             }
 
-            if (wgl.inputManager.onPushKey(' ')) {
-            //if (wgl.inputManager.onPressKey(' ')) {
+            if (wgl.inputManager.onPushKey(' ')) {//スペースキーが押されていたら
 
                 flg_jump = true;
 
@@ -1082,8 +986,8 @@ window.addEventListener('DOMContentLoaded', async () => { //読み込み完了�
                     isJump = true;
 
                     charaAcc.y = 0.3;
-                        //wgl.soundManager.playSound(bgm001Key, 0.02, false);
-                    wgl.soundManager.playSound(sound003Key, 0.05, false);
+
+                    wgl.soundManager.playSound(sound003Key, 0.2, false);   //ジャンプ音
 
                     if (!isWalk && isOnGround) {
                         if (animationKey.length > 1) {
@@ -1130,19 +1034,21 @@ window.addEventListener('DOMContentLoaded', async () => { //読み込み完了�
             cameraRot.y -= stickR.x * stickRotRate;
             cameraRot.x += stickR.y * stickRotRate;
 
-            /*
-            // 既存のフルスクリーン切り替え
-            if (wgl.inputManager.onPushKey('1')) {
+            
+            // 画面のフルスクリーン切り替え
+            if (wgl.inputManager.onPushKey('f')) {
                 wgl.toggleFullscreen();
             }
-            */
+            
+
+
             //音楽再生
 
             if (wgl.inputManager.onPushKey('1')) {
-                wgl.soundManager.playMusic(bgm001Key, 0.02, true);
+                wgl.soundManager.playMusic(bgm001Key, 0.2, true);
             }
             if (wgl.inputManager.onPushKey('2')) {
-                wgl.soundManager.crossFadeMusic(bgm002Key, 0.02, true, 1.0);
+                wgl.soundManager.crossFadeMusic(bgm002Key, 0.2, true, 1.0);
             }
             if (wgl.inputManager.onPushKey('3')) {
                 wgl.soundManager.stopMusic(3.0);
@@ -1156,22 +1062,24 @@ window.addEventListener('DOMContentLoaded', async () => { //読み込み完了�
             // ------------------------------
 
             gameCounter += 1.0 * deltaTime;
-            //console.log(`cameraRot ${cameraRot}`);
 
 
             //カメラ
 
-            wgl.setCameraTarget(charaPos.x, charaPos.y + 1.0, charaPos.z);
+            wgl.setCameraTarget(charaPos.x, charaPos.y + 1.0, charaPos.z);  //カメラのターゲット（ここを見る）
 
-            wgl.setCameraAngle(cameraRot.x, cameraRot.y, cameraRot.z);
-            wgl.setCameraDistance(8.0);
-            wgl.calcCameraPosByDistanceAndAngles();
+            wgl.setCameraAngle(cameraRot.x, cameraRot.y, cameraRot.z);  //ターゲットから見たカメラの回転
+            wgl.setCameraDistance(8.0);                                 //ターゲットからの距離
+            wgl.calcCameraPosByDistanceAndAngles();                     //回転と距離によってカメラの位置を計算
+
+            //カメラの位置を直接指定したい場合は、wgl.setCameraPosition(x, y, z)
 
             
             let cameraPos = wgl.getCameraPosition();
 
-            let cameraFloorY = calculateHeight(cameraPos[0], cameraPos[2]);
+            let cameraFloorY = calculateHeight(cameraPos[0], cameraPos[2]); //地面の高さ（パーリンノイズから情報を取っています）
 
+            //カメラが地面の下に潜らないようにする
             const floorThreshold = 0.1;
             if (cameraPos[1] < cameraFloorY + floorThreshold) {
                 cameraPos[1] = cameraFloorY + floorThreshold;
@@ -1179,9 +1087,6 @@ window.addEventListener('DOMContentLoaded', async () => { //読み込み完了�
             }
 
 
-
-
-            //wgl.setShaderGenericArray(0, 0, (Math.sin(gameCounter * 1.0) + 1.0) * 0.5);
 
             //太陽の動き
 
@@ -1197,53 +1102,54 @@ window.addEventListener('DOMContentLoaded', async () => { //読み込み完了�
 
             wgl.setLightDirection(lx, ly, 0.0);
 
-//wgl.setLightDirection(0.0, -1.0, 0.0);
 
-            wgl.useShaderProgram("Default");
 
-            wgl.clearCanvas();
+            wgl.useShaderProgram("Default");    //シェーダーをセット（現在はこの一種類しかありません）
 
-            //triangleMesh.draw(wgl);
+            wgl.clearCanvas();                  //画面をクリア
+
             
-            //キャラクター
+            //キャラクター描画  （＊スケールや位置、回転などは変える必要が無ければ、書かなくても大丈夫です）
             gltfMesh.setScale(10.0, 10.0, 10.0);
             gltfMesh.setPosition(charaPos.x, charaPos.y, charaPos.z);
             gltfMesh.setRotation(charaRot.x, charaRot.y, charaRot.z);
             gltfMesh.draw(wgl);
 
             
-            //cubeMesh.setScale(0.1, 0.1, 0.1);
+            //空中を回っている立方体 描画
             cubeMesh.setPosition(5.0 * Math.sin(gameCounter * 0.3), 4.0, 5.0 * Math.cos(gameCounter * 0.3));
             cubeMesh.setRotation(gameCounter * 30.0, gameCounter * 50.0, gameCounter * 20.0);
             cubeMesh.draw(wgl);
 
 
 
-
+            //地面 描画
             floorMesh.draw(wgl);
 
-            //tree001
+
+
+            //tree001   木をランダムでつくった位置に表示
             for (let i=0; i<tree001_posArray.length; i++) {
                 treeMesh001.setPosition(tree001_posArray[i].x, tree001_posArray[i].y, tree001_posArray[i].z);
                 treeMesh001.setRotation(0.0, tree001_posArray[i].rot, 0.0);
                 treeMesh001.setScale(0.5, 0.5, 0.5);
                 treeMesh001.draw(wgl);
             }
-            //tree002
+            //tree002   小さい木
             for (let i=0; i<tree002_posArray.length; i++) {
                 treeMesh002.setPosition(tree002_posArray[i].x, tree002_posArray[i].y, tree002_posArray[i].z);
                 treeMesh002.setRotation(0.0, tree002_posArray[i].rot, 0.0);
                 treeMesh002.setScale(0.5, 0.5, 0.5);
                 treeMesh002.draw(wgl);
             }
-            //stone001
+            //stone001  石
             for (let i=0; i<stone001_posArray.length; i++) {
                 stoneMesh001.setPosition(stone001_posArray[i].x, stone001_posArray[i].y, stone001_posArray[i].z);
                 stoneMesh001.setRotation(0.0, stone001_posArray[i].rot, 0.0);
                 stoneMesh001.setScale(0.3, 0.3, 0.3);
                 stoneMesh001.draw(wgl);
             }
-            //grass001
+            //grass001  草
             for (let i=0; i<grass001_posArray.length; i++) {
                 grassMesh001.setPosition(grass001_posArray[i].x, grass001_posArray[i].y, grass001_posArray[i].z);
                 grassMesh001.setRotation(0.0, grass001_posArray[i].rot, 0.0);
@@ -1251,9 +1157,9 @@ window.addEventListener('DOMContentLoaded', async () => { //読み込み完了�
                 grassMesh001.draw(wgl);
             }
 
-            //空
-            sphereMesh.draw(wgl);
 
+            //空の球体 描画
+            sphereMesh.draw(wgl);
 
 
 

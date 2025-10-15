@@ -104,7 +104,7 @@ class SolaSoundManager {
     }
 
 
-/**
+    /**
      * BGMを再生します。既存のBGMがあれば即座に停止して新しい曲を再生します。
      * @param {string} key - 再生したいBGMのキー
      * @param {number} vol - 音量レベル (0.0 から 1.0)
@@ -417,12 +417,9 @@ class SolaSoundManager {
         return sourceNode;
     }
 
-    /**
-     * 補足: ノードを返すことで、外部で停止処理を呼ぶことができます。
-     * 例: const node = soundManager.playSound('bgm', true); 
-     * setTimeout(() => node.stop(), 10000); // 10秒後に停止
-     */
 
+
+    
     onDestroy() {
 
 

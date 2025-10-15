@@ -58,24 +58,6 @@ class SolaMesh {
         this._isLooping = false;            // ループ再生フラグ
 
 
-        /*
-        this._vertices = [];    //4
-        this._uvs = [];         //2
-        this._normals = [];     //4 法線データ
-        this._boneIDs = [];     //4 ボーンID
-        this._boneWeights = []; //4 ボーン影響値
-
-
-        // 描画データ
-        
-        this.vertexCount = 0;
-        this.vbo = null;
-        this.uvbo = null;
-        this.nbo = null;   // 法線バッファ
-        this.bIdbo = null; // ボーンIDバッファ
-        this.bWbo = null;  // ボーン影響値バッファ
-        */
-
 
 
     }
@@ -193,13 +175,6 @@ class SolaMesh {
                 tempBoneWeight[2] = vertexData[offset + 16];
                 tempBoneWeight[2] = vertexData[offset + 17];
 
-                /*
-                if (i < 10) {
-                    
-                    console.log(`      UV: (${u.toFixed(2)}, ${v.toFixed(2)}), Normal: (${nx.toFixed(2)}, ${ny.toFixed(2)}, ${nz.toFixed(2)})`);
-                    console.log(`      JointID: [${joint0}, ${joint1}, ${joint2}, ${joint3}], Weight: [${weight0.toFixed(2)}, ${weight1.toFixed(2)}, ${weight2.toFixed(2)}, ${weight3.toFixed(2)}]`);
-                }
-                */
                
                 // SolaMeshの addVertexData(data) に準拠したオブジェクトを作成し、呼び出す
                 this.addVertexData({
@@ -210,10 +185,7 @@ class SolaMesh {
                     boneWeights: tempBoneWeight
                 });
 
-                // デバッグ表示 (最初の50項目のみ)
-                //if (i < 50) {
-                //    console.log(`[Add #${i}] P:${tempPosition.map(n=>n.toFixed(3))} UV:${tempUV.map(n=>n.toFixed(3))} N:${tempNormal.map(n=>n.toFixed(3))}`);
-                //}
+
             }
             
             // 3. インデックスデータを追加
@@ -294,12 +266,6 @@ class SolaMesh {
             
             console.log(`[SolaMesh] アニメーションデータ ${animationDataList.length} 件をセットしました。総ボーン数: ${this._boneCount}`);
 
-        /*
-        } else {
-            this._animationDataList = null;
-            this._boneCount = 0;
-            this._identityBoneMatrixArray = null;
-        */
 
         }
     }
@@ -463,19 +429,7 @@ class SolaMesh {
     }
 
 
-    /*
-        createBuffer(gl, data, type = gl.ARRAY_BUFFER, usage = gl.STATIC_DRAW) {
 
-        const buffer = gl.createBuffer();
-        gl.bindBuffer(type, buffer);
-        // データはFloat32Arrayに変換して転送
-        gl.bufferData(type, new Float32Array(data), usage);
-        gl.bindBuffer(type, null);
-
-
-        return buffer;
-    }
-    */
 
     /**
      * モデルの位置 (position) を設定します。
@@ -512,16 +466,7 @@ class SolaMesh {
         this.textureKey = key;
     }
 
-    /*
-    // ----------------------------------------------------
-    // 外部でバッファ作成するためのGetter (Normal, Skinning用を追加)
-    // ----------------------------------------------------
-    getVertices() { return this._vertices; }
-    getUVs() { return this._uvs; }
-    getNormals() { return this._normals; }
-    getBoneIDs() { return this._boneIDs; }
-    getBoneWeights() { return this._boneWeights; }
-*/
+
 
     /**
      * 姿勢データ (位置、回転、スケール) から Model 行列 (mat4) を計算して返す。
@@ -557,17 +502,7 @@ class SolaMesh {
     }
 
 
-    /**
-     * WebGLバッファを作成・初期化するプライベートメソッド
-    _initBuffer(data, target, usage) {
-        const gl = this.gl;
-        const buffer = gl.createBuffer();
-        gl.bindBuffer(target, buffer);
-        gl.bufferData(target, new Float32Array(data), usage);
-        gl.bindBuffer(target, null);
-        return buffer;
-    }
-     */
+
 
     /**
      * モデル行列（姿勢行列）を計算し、WebGLの描画に必要なバインディングを実行する。
@@ -575,38 +510,11 @@ class SolaMesh {
      * @param {SolaWGL} glHelper - SolaWGLのインスタンス (ロケーション情報などを取得するため)
      */
 
-
-
-
-
-
-
-
     draw(glHelper) {
 
         const gl = this.gl;
 
         
-        //＜シェーダーに変数を渡す＞
-
-
-        // 行列の計算
-        /*
-        const modelMatrix = mat4.create();
-        mat4.scale(modelMatrix, modelMatrix, this.scale);
-        if (this.rotation[2] !== 0) { mat4.rotateZ(modelMatrix, modelMatrix, this.rotation[2]); }
-        if (this.rotation[1] !== 0) { mat4.rotateY(modelMatrix, modelMatrix, this.rotation[1]); }
-        if (this.rotation[0] !== 0) { mat4.rotateX(modelMatrix, modelMatrix, this.rotation[0]); }
-        mat4.translate(modelMatrix, modelMatrix, this.position);
-        */
-
-
-
-        
-
-
-
-
         
         //＜頂点情報＞
 
@@ -667,8 +575,6 @@ class SolaMesh {
                 gl.uniform1i(glHelper.uSamplerLocation, 0);
             }
 
-            //const indexCount = this.indexDataUint16Array.length;
-            //console.log(`[Draw Check] Drawing ${indexCount} elements (triangles: ${indexCount / 3})`);
 
 
             //シェーダー変数
@@ -684,45 +590,12 @@ class SolaMesh {
 
 
 
-
-            //gl.flush();
-            //gl.finish();
-
         }
 
  
 
 
 
-
-
-
-
-
-
-        //ーーーーーーーーーーーーーーーーーー保留
-
-        /*
-        // テクスチャのバインド
-        if (this.texture) {
-            gl.activeTexture(gl.TEXTURE0);
-            gl.bindTexture(gl.TEXTURE_2D, this.texture);
-            gl.uniform1i(glHelper.uSamplerLocation, 0); 
-        }
-
-        // 頂点属性バッファのバインド
-        // a_position (頂点座標)
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.vbo);
-        // 頂点座標は3要素 (X, Y, Z)
-        gl.vertexAttribPointer(glHelper.aPositionLocation, 3, gl.FLOAT, false, 0, 0);
-        gl.enableVertexAttribArray(glHelper.aPositionLocation);
-
-        // a_texcoord (UV座標)
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.uvbo);
-        // UV座標は2要素 (U, V)
-        gl.vertexAttribPointer(glHelper.aTexcoordLocation, 2, gl.FLOAT, false, 0, 0);
-        gl.enableVertexAttribArray(glHelper.aTexcoordLocation);
-*/
 
     }
 

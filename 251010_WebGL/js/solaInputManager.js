@@ -169,23 +169,7 @@ class SolaInputManager {
         this.currentMousePosition.x = e.clientX;
         this.currentMousePosition.y = e.clientY;
 
-        /*
-        // 【追加/修正】Pointer Lockが有効な場合、移動量のみを累積する（カーソル位置は更新しない）
-        if (this.isPointerLocked) {
-            this.mouseDelta.x += deltaX;
-            this.mouseDelta.y += deltaY;
-            
-            // Pointer Lock中はカーソル位置は固定されるため更新不要
-        } else {
-            // ロックされていない場合、通常のカーソル位置の更新のみ行う
-            // deltaX, deltaY はウィンドウ外に出ると不安定になるため、deltaの累積はPointer Lock時に限定するのが望ましい
-            this.currentMousePosition.x = e.clientX;
-            this.currentMousePosition.y = e.clientY;
-            
-            // ロックされていないときの移動量も累積したい場合は、ここに移動量累積のロジックを追加できますが、
-            // ゲームのカメラ操作などの用途であれば、ロック時のみを対象とすることを推奨します。
-        }
-            */
+
 
     }
 
@@ -396,7 +380,7 @@ class SolaInputManager {
 
 
 
-// 【新規追加】キーが押された瞬間を取得し、状態をリセットする関数
+    // 【キーが押された瞬間を取得し、状態をリセットする関数
     /**
      * 指定されたキーが「押された瞬間」にのみ true を返し、呼び出し後に状態を false にリセットする。
      * (イベント駆動型の処理)
@@ -542,7 +526,7 @@ class SolaInputManager {
 }
 
 
-//BUTTONS 定数を他の js などから利用できるようにするため、このコードの一番下に window オブジェクトに BUTTONS を追加するコードを記述することが一般的です。
+//BUTTONS 定数を他の js などから利用できるようにするため、このコードの一番下に window オブジェクトに BUTTONS を追加するコードを記述することが一般的。
 window.BUTTONS = BUTTONS;
 window.AXES = AXES;
 

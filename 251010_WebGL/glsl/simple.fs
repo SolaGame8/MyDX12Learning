@@ -2,8 +2,6 @@
 
 precision mediump float;    //floatの精度
 
-//varying vec2 v_texcoord;      // 頂点シェーダーからUV情報を受け取る
-//uniform sampler2D u_sampler;    //テクスチャー
 
 in vec2 v_texcoord;         // 頂点シェーダーからの入力 (varying -> in)
 in vec4 v_normal;
@@ -11,10 +9,10 @@ in vec4 v_normal;
 
 out vec4 fragColor;         // フラグメントシェーダーの出力先を宣言 (gl_FragColorの代替)
 
-uniform sampler2D u_sampler;
+uniform sampler2D u_sampler;    //テクスチャー
 
 
-uniform vec4 u_genericArray[16]; 
+uniform vec4 u_genericArray[16];    //汎用のパラメータ
 
 // 太陽のパラメータをJavaScript側から受け取るユニフォーム変数
 uniform vec3 u_lightDirection;    // 光の方向 (既に正規化されていることを想定)
@@ -26,14 +24,7 @@ uniform vec3 u_ambientColor;      // 環境光の色
 uniform float u_ambientIntensity; // 環境光の強度
 
     
-    // 太陽
-    //const vec3 c_lightDirection = normalize(vec3(-0.5, 1.0, 0.5));
-    //const vec3 c_lightColor = vec3(1.0, 1.0, 0.8); 
-    //const float c_lightIntensity = 1.8;    
 
-    // アンビエント
-    //const vec3 c_ambientColor = vec3(0.5, 0.5, 0.8); 
-    //const float c_ambientIntensity = 0.7; 
 
 
 void main() {
@@ -56,13 +47,11 @@ void main() {
     
     // ベースカラー (RGB) に光のカラーを乗算
     vec3 finalColorRGB = baseColor.rgb * totalLight;
-    //vec3 finalColorRGB = baseColor.rgb * totalLight * 1.0;
 
     // fragColorに出力
     fragColor = vec4(finalColorRGB, baseColor.a);
 
 
-    //fragColor = texture(u_sampler, v_texcoord);
 
 }
 

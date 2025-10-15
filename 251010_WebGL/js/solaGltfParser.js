@@ -76,15 +76,7 @@ class SolaGltfParser {
                 
                 console.log('[SolaGltfParser.loadModel] ArrayBufferロード完了 (外部ファイル)');
             }
-            /*
-            const bufferInfo = gltf.buffers[0];
-            const bufferUrl = basePath + bufferInfo.uri;
-            console.log(`[SolaGltfParser.loadModel]  バイナリデータURI: (サイズ: ${bufferInfo.byteLength} bytes)`);
-
-            const bufferResponse = await fetch(bufferUrl);
-            const arrayBuffer = await bufferResponse.arrayBuffer(); // ArrayBufferとして取得
-            console.log('[SolaGltfParser.loadModel] ArrayBufferロード完了');
-            */
+            
 
             const meshDataList = this._parseMeshes(gltf, arrayBuffer);
 
@@ -271,17 +263,6 @@ class SolaGltfParser {
             return nodeInfo;
         });
 
-
-        /*
-        // パース後にコンソール出力を行う
-        console.log('[SolaGltfParser._parseNodes] パース結果 (最大10件):');
-        nodeData.slice(0, 10).forEach((node, index) => {
-            console.log(`  [${index}] Name: ${node.name || 'N/A'}, Children Count: ${node.children.length}, Has Matrix: ${!!node.matrix}`);
-        });
-        */
-
-        // ノードツリーの構築（親子関係の解決）は、このデータ構造を使用して外部で行うか、
-        // ここで Node オブジェクトのインスタンス化とツリー構造の構築ロジックを追加する必要があります。
 
         return nodeData;
     }
@@ -530,7 +511,7 @@ class SolaGltfParser {
     }
 
 
-        /**
+    /**
      * 🚨 【実装】指定時間における全ノードのモデル空間行列（JointModelMatrix）を計算します。
      * ノードツリーを走査し、アニメーションを適用して行列を累積します。
      * * @param {object} gltf - glTF JSON データ
@@ -691,32 +672,6 @@ class SolaGltfParser {
                 }
 
 
-                // アニメーションが複数ある場合、最初のものだけが適用される（このループの構造による）
-                // glTFは通常、ノードごとに一つのアニメーションチャンネルを持ちます。
-                /*
-                // 補間処理
-                // 1. time に対応する前後のキーフレームインデックス (k0, k1) を見つける
-                // 2. 補間係数 t を計算 (t = (time - inputTimes[k0]) / (inputTimes[k1] - inputTimes[k0]))
-                // 3. outputValues[k0] と outputValues[k1] の間で補間を実行 (lerp, slerp)
-                
-                // 💡 補間ロジックのプレースホルダー
-                // 簡略化のため、ここでは最初のキーフレームの値（静止ポーズ）を使用、または補間を実行しない
-                const k0 = 0; // 最初のキーフレームインデックス
-                
-                if (k0 < inputTimes.length) {
-                    hasAnim = true;
-                    if (channel.targetPath === 'translation') {
-                        vec3.set(translation, outputValues[k0 * 3 + 0], outputValues[k0 * 3 + 1], outputValues[k0 * 3 + 2]);
-                        // 🚨 実際には: vec3.lerp(translation, outputValues[k0*3], outputValues[k1*3], t);
-                    } else if (channel.targetPath === 'rotation') {
-                        quat.set(rotation, outputValues[k0 * 4 + 0], outputValues[k0 * 4 + 1], outputValues[k0 * 4 + 2], outputValues[k0 * 4 + 3]);
-                        // 🚨 実際には: quat.slerp(rotation, outputValues[k0*4], outputValues[k1*4], t);
-                    } else if (channel.targetPath === 'scale') {
-                        vec3.set(scale, outputValues[k0 * 3 + 0], outputValues[k0 * 3 + 1], outputValues[k0 * 3 + 2]);
-                        // 🚨 実際には: vec3.lerp(scale, outputValues[k0*3], outputValues[k1*3], t);
-                    }
-                }
-                */
 
             }
         }
@@ -840,41 +795,6 @@ class SolaGltfParser {
     }
 
 
-    
-    /**
-     * 現在ロードされているモデルに含まれるすべてのアニメーションキー（名前）をコンソールに出力します。
-     */
-    /*
-    logAvailableAnimationKeys() {
-        const gltfUrl = this._lastLoadedUrl;
-        
-        if (!gltfUrl || !this._modelCache.has(gltfUrl)) {
-            console.warn('[logAvailableAnimationKeys] モデルがロードされていません。アニメーションキーを取得できません。');
-            return;
-        }
-
-        const cachedData = this._modelCache.get(gltfUrl);
-        const bakedAnimations = cachedData.bakedAnimationData.bakedAnimations;
-
-        if (!bakedAnimations || bakedAnimations.size === 0) {
-            console.log('[logAvailableAnimationKeys] ロードされたモデルにはアニメーションデータが含まれていません。');
-            return;
-        }
-
-        console.log('--- 🚨利用可能なアニメーションキー ---');
-        let index = 0;
-        
-        // Mapのキーをすべて取得し、コンソールに出力
-        bakedAnimations.forEach((value, key) => {
-            const maxFrames = value.maxKeyframeCount;
-            console.log(` 🚨 [${index}] Key: "${key}", (Max Frames: ${maxFrames})`);
-            index++;
-        });
-        
-        console.log(`------------------------------------ (合計 ${bakedAnimations.size} 件)`);
-    }
-
-    */
 
 
     getNumBones() {
@@ -1182,17 +1102,7 @@ class SolaGltfParser {
             interleavedArray[offset + 16] = weight2;
             interleavedArray[offset + 17] = weight3;
 
-            /*
-            // 🚨 【修正】console.log内でローカル変数を使用
-            if (i < 10) {
-                // Posデータはローカル変数化していないため、配列から取得
-                console.log(`[Vtx ${i}] Pos: (${interleavedArray[offset + 0].toFixed(2)}, ${interleavedArray[offset + 1].toFixed(2)}, ${interleavedArray[offset + 2].toFixed(2)})`);
-                
-                // UV, Normal, JointID, Weightはローカル変数を使用
-                console.log(`      UV: (${u.toFixed(2)}, ${v.toFixed(2)}), Normal: (${nx.toFixed(2)}, ${ny.toFixed(2)}, ${nz.toFixed(2)})`);
-                console.log(`      JointID: [${joint0}, ${joint1}, ${joint2}, ${joint3}], Weight: [${weight0.toFixed(2)}, ${weight1.toFixed(2)}, ${weight2.toFixed(2)}, ${weight3.toFixed(2)}]`);
-            }
-                */
+
 
         }
         

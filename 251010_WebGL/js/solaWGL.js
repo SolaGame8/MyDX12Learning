@@ -311,11 +311,7 @@ class SolaWGL {
 
     }
 
-    /*
-        this.cameraDistance = 5.0; // 注視点 (Target) からの距離
-        
-        this.cameraAngles = vec3.fromValues(0, 0, 0); // [Yaw(Y軸回転), Pitch(X軸回転), Roll(Z軸回転)]
-    */
+
 
     /**
      * 距離(cameraDistance)と角度(cameraAngles)に基づき、cameraPosition を計算し、設定する。
