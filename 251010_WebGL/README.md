@@ -80,7 +80,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 
 ## SolaWGL (`solaWGL.js`)
 
-
+アプリケーション本体です。
 
 ### API
 
