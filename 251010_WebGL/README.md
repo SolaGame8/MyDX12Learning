@@ -1,6 +1,22 @@
 # SolaWGL WebGL Toolkit
 
-週末の3日間で学習しながら WebGL のユーティリティを作りました（`SolaWGL` / `SolaMesh` / `SolaInputManager` / `SolaTextureManager` / `SolaGltfParser` / `SolaSoundManager` / `solaRandomGenerator` / `solaPerlinNoise`）。  
+週末の3日間で学習しながら WebGL のユーティリティを作りました。  
+
+## 操作
+
+ゲームパッド
+L Stick : 移動
+A ボタン : ジャンプ
+
+キーボード
+wasd : 移動
+スペース : ジャンプ
+
+1 キー : 音楽再生
+2 キー : 次の音楽に切り替え
+3 キー : 音楽停止
+
+ｆキー : フルスクリーン切り替え
 
 ---
 
