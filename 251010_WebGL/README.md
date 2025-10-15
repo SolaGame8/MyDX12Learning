@@ -87,36 +87,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 
 ## SolaWGL (`solaWGL.js`)
 
-### 使い方スニペット
 
-```js
-window.addEventListener('DOMContentLoaded', async () => {
-  const wgl = new SolaWGL('glCanvas'); // HTML の canvas ID で初期化
-
-  const isReady = await wgl.init();
-  if (!isReady) {
-    console.error('アプリケーションの初期化に失敗しました');
-    return;
-  }
-
-  // … ここでモデル作成やテクスチャ準備 …
-
-  const render = () => {
-    const flg_Update = wgl.update();
-
-    if (flg_Update) {
-      const deltaTime = wgl.getDeltaTime();
-
-      // 入力処理 …
-      // カメラ・ライト設定 …
-      // 描画 …
-    }
-    requestAnimationFrame(render);
-  };
-
-  render();
-});
-```
 
 ### API
 
@@ -170,7 +141,7 @@ triangleMesh.addVertexData({
 // インデックス
 triangleMesh.addIndexData(0, 1, 2);
 
-// ビルド（GPU 転送など）
+// ビルド（使えるデータにする）
 triangleMesh.buildMesh(wgl);
 
 // 描画
@@ -189,10 +160,13 @@ const meshDataList = await parser.loadModel('./gltf/character.gltf'); // glTF �
 let gltfMesh = new SolaMesh(this);
 gltfMesh.setMeshDataList(meshDataList);
 
+gltfMesh.buildMesh(wgl);　// ビルド（使えるデータにする）
+
 // テクスチャ読み込み
 const myTextureKey = 'characterTex_key';
 await wgl.textureManager.loadAndRegister(myTextureKey, './gltf/character_albedo.jpg');
-gltfMesh.setTextureKey(myTextureKey);
+
+gltfMesh.setTextureKey(myTextureKey);//テクスチャーをセット
 
 // 描画
 gltfMesh.setScale(1.0, 1.0, 1.0);
@@ -239,10 +213,12 @@ if (isAPressed) {
 }
 
 // キーボード検知
-wgl.inputManager.addKeyToTrack([' ', '1', '2', '3', 'w', 'a', 's', 'd']);
+wgl.inputManager.addKeyToTrack([' ', '1', '2', '3', 'w', 'a', 's', 'd']);//事前に登録します
+
 if (wgl.inputManager.onPressKey('w')) {
-  // 前進処理など
+
 }
+
 ```
 
 ### API
@@ -263,6 +239,17 @@ if (wgl.inputManager.onPressKey('w')) {
 
 ## SolaTextureManager (`solaTextureManager.js`)
 
+```js
+
+// テクスチャ読み込み
+const myTextureKey = 'characterTex_key';
+await wgl.textureManager.loadAndRegister(myTextureKey, './gltf/character_albedo.jpg');
+
+gltfMesh.setTextureKey(myTextureKey);//テクスチャーをメッシュにセット
+
+```
+
+
 ### API
 
 | 関数名 (引数) | 説明 |
@@ -276,6 +263,20 @@ if (wgl.inputManager.onPressKey('w')) {
 
 ## SolaGltfParser (`solaGltfParser.js`)
 
+```js
+
+let parser = wgl.gltfParser; // glTF パーサー
+const meshDataList = await parser.loadModel('./gltf/character.gltf'); // glTF 読み込み
+
+let gltfMesh = new SolaMesh(this);  //メッシュクラス作成
+
+gltfMesh.setMeshDataList(meshDataList);//gltfから読みこんだ情報をセット
+
+gltfMesh.buildMesh(wgl);　// ビルド（使えるデータにする）
+
+```
+
+
 ### API
 
 | 関数名 (引数) | 説明 |
@@ -287,6 +288,16 @@ if (wgl.inputManager.onPressKey('w')) {
 ---
 
 ## SolaSoundManager (`solaSoundManager.js`)
+
+```js
+
+    const bgm001Key = "bgm001";　//キー
+    await wgl.soundManager.loadSound(bgm001Key, "./sound/bgm001.mp3");  //ファイル読み込み
+
+    wgl.soundManager.playSound(sound003Key, 0.2, false);  //音の再生（キー、ボリューム、ループするかどうか）
+
+```
+
 
 ### API
 
@@ -304,6 +315,16 @@ if (wgl.inputManager.onPressKey('w')) {
 
 ## solaRandomGenerator (`solaRandomGenerator.js`)
 
+```js
+
+    const rng = new solaRandomGenerator();  //シード値が同じなら、毎回同じ乱数が出ます
+    rng.setSeed(12345);
+
+    // 乱数を生成
+    let r = rng.getRandom();//0.0 - 1.0
+
+```
+
 ### API
 
 | 関数名 (引数) | 説明 |
@@ -315,6 +336,15 @@ if (wgl.inputManager.onPressKey('w')) {
 ---
 
 ## solaPerlinNoise (`solaPerlinNoise.js`)
+
+```js
+
+    const noiseSeed = 1234; 
+    const perlin = new solaPerlinNoise(noiseSeed);
+
+    const noiseValue = perlin.noise(x, y, z);  //(xyzの位置によって) float のノイズが返る
+
+```
 
 ### API
 
