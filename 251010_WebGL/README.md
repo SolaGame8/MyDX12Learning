@@ -88,26 +88,22 @@ window.addEventListener('DOMContentLoaded', async () => {
 |---|---|
 | `constructor(canvasId)` | クラスの初期化。キャンバスと WebGL コンテキストの取得、プロパティ設定、イベントリスナー登録を行う。 |
 | `init()` | **非同期**の初期化処理。デフォルトシェーダーのロードと使用を行う。 |
-
 | `setLightDirection(x, y, z)` | 光の方向 (vec3) を設定。 |
 | `setLightColor(r, g, b)` | 光の色 (vec3) を設定。 |
 | `setLightIntensity(newIntensity)` | 光の強度 (float) を設定。 |
 | `setAmbientColor(r, g, b)` | 環境光の色 (vec3) を設定。 |
 | `setAmbientIntensity(newIntensity)` | 環境光の強度 (float) を設定。 |
-
 | `setCameraTarget(x, y, z)` | カメラの注視点を設定。 |
 | `setCameraPosition(x, y, z)` | カメラの位置を設定。 |
 | `setCameraAngle(pitch, yaw, roll)` | カメラ角度 (Pitch/Yaw/Roll) を設定。 |
 | `setCameraDistance(dist)` | 注視点からの距離を設定。 |
 | `getCameraPosition()` | カメラ位置 (cameraPosition) を返す。 |
 | `calcCameraPosByDistanceAndAngles()` | 距離と角度からカメラ位置を計算して反映。 |
-
 | `useShaderProgram(key)` | シェーダプログラムをキーで切替え、ユニフォーム値を設定。 |
 | `update()` | **ゲームループの更新処理**。**戻り値が `true` のときのみ描画処理**を行う（FPS 制御のため）。 |
 | `getDeltaTime()` | 最後の描画からの経過時間（秒）を返す。 |
 | `setFpsLimit(fps)` | 最大 FPS をセットします。 |
 | `getFps()` | 現在の平均 FPS を返す。 |
-
 | `setClearColor(r, g, b, a)` | キャンバスのクリア色を設定。 |
 | `clearCanvas()` | WebGL のカラーバッファをクリア。 |
 | `toggleFullscreen()` | フルスクリーン表示とウィンドウ表示を切替え。 |
