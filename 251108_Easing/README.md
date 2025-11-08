@@ -11,13 +11,6 @@
 #### `float GetTimeFactor(float counter, float transition_time = 1.0f, float idle_time = 0.0f, float counter_offset = 0.0f)`
 カウンターを周期的に正規化し、`0.0〜1.0`の範囲にマッピングします。
 
-- **counter** : 現在の時間やカウント値  
-- **transition_time** : 遷移期間（0.0〜1.0へ変換する時間）  
-- **idle_time** : 遷移完了後の待機時間  
-- **counter_offset** : カウンターのオフセット  
-
-
-
 
 | メンバー | 説明 |
 |-----------|-------------|
@@ -44,6 +37,12 @@
 `TIMEFACTOR_RESULT` 構造体  
 - **step** : 現在のステップ番号  
 - **time** : ステップ内の正規化時間 `[0.0〜1.0]`
+
+
+| メンバー | 説明 |
+|-----------|-------------|
+| `step` | 現在のステップ番号 |
+| `time` | ステップ内の正規化時間 `[0.0〜1.0]` |
 
 ---
 
