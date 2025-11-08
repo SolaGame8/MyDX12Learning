@@ -1,92 +1,10 @@
-#include "EasingTest.h"
-
+#include "Engine/SF/SFFloat.h"
 #include "Engine/SF/Easing.h"
-
-void EasingTest::Init() {
-
-	//ƒV[ƒ“
-	myScene001 = AddNewScene("scene001");
-
-	//ƒJƒƒ‰
-	camera001 = myScene001->GetDefaultCamera();
-	camera001->setDistanceFromTarget(1.0f);
-	camera001->setFollowTarget(true);
-	camera001->setTargetAdjust(XMFLOAT3(0.0f, 1.0f, 0.0f));
-	camera001->setLensFocal_fNumber(24.0f, 1.2f);
-	camera001->setUseBokeh(false);
-
-	camera001->setTargetDeltaRot(XMFLOAT3(-3.0f, 5.0f, 8.0f), XMFLOAT3(0.0f, 180.0f, 0.0f));
-
-	//‹ó
-	sky001 = myScene001->CreateNew_Sphere("sky001", 490.0f, true, 1, 1); //”½“]  , heapNum, indexedNum
-	sky001->SetRendertype(RENDER_UNLIT);	//Unlit•`‰æ
-	sky001->SetRot(XMFLOAT3(0.0f, 0.0f, 0.0f));
-	sky001->SetVisible(true);
-	sky001->SetTexture("Resource/test/night001.png", 0, 0);	//MeshIdx, SrvIdx
-
-	//°
-	floor001 = myScene001->CreateNew_Plate("floor001", 50.0f, 50.0f, false, 1, 1);//heapNum, IndexedNum
-	floor001->SetPos(XMFLOAT3(0.0f, 0.0f, 0.0f));
-	floor001->SetVisible(true);
-	floor001->SetTexture("Resource/test/easing/grid001.png", 0, 0);	//MeshIdx, SrvIdx
-
-
-	//‘¾—z
-	myScene001->SystemSettings.sunIntensity = 0.8f;
-	myScene001->SystemSettings.ambientIntensity = 0.5f;
-	myScene001->SystemSettings.sunLightDirection = XMFLOAT4(0.5f, -1.0f, 0.5f, 1.0f);
-
-	//ƒLƒƒƒ‰
-	chara001 = myScene001->CreateNew_Character("boy001", "Resource/test/easing/CuteBlue.gltf", 1, 2, 1); //heapNum, IndexedNum, LOD size
-	//chara001->SetPosRot(XMFLOAT3{ 0.0f, 0.0f, 0.0f }, XMFLOAT3{ 0.0f, 0.0f, 0.0f });
-	chara001->SetVisible(true);
-	chara001->SetTexture("Resource/test/easing/CuteMonster_BaseColor.png", 0, POLYTEX_ALBEDO);	//MeshIdx, SrvIdx
-
-	chara001->SetIndexedPosRot(0, XMFLOAT3{ 0.0f, 0.0f, 0.0f }, XMFLOAT3{ 0.0f, 0.0f, 0.0f });
-	chara001->SetIndexedPosRot(1, XMFLOAT3{ 2.0f, 0.0f, 0.0f }, XMFLOAT3{ 0.0f, 0.0f, 0.0f });
-
-
-	//ƒŒƒo[
-	lever001 = myScene001->CreateNew_PolygonStatic("lever001", "Resource/test/easing/Lever.gltf", 1, 2, 1);
-	lever001->SetVisible(true);
-	lever001->SetTexture("Resource/test/easing/LeverAlbedo.png", 0, POLYTEX_ALBEDO);	//MeshIdx, SrvIdx
-	lever001->SetIndexedPosRot(0, XMFLOAT3{ 6.0f, 0.0f, 0.0f }, XMFLOAT3{ 0.0f, 0.0f, 0.0f });
-	lever001->SetIndexedPosRot(1, XMFLOAT3{ 9.0f, 0.0f, 0.0f }, XMFLOAT3{ 0.0f, 0.0f, 0.0f });
-
-	leverBox001 = myScene001->CreateNew_PolygonStatic("leverBox001", "Resource/test/easing/LeverBox.gltf", 1, 2, 1);
-	leverBox001->SetVisible(true);
-	leverBox001->SetTexture("Resource/test/easing/LeverAlbedo.png", 0, POLYTEX_ALBEDO);	//MeshIdx, SrvIdx
-	leverBox001->SetIndexedPosRot(0, XMFLOAT3{ 6.0f, 0.0f, 0.0f }, XMFLOAT3{ 0.0f, 0.0f, 0.0f });
-	leverBox001->SetIndexedPosRot(1, XMFLOAT3{ 9.0f, 0.0f, 0.0f }, XMFLOAT3{ 0.0f, 0.0f, 0.0f });
-
-
-
-}
-
-void EasingTest::OnUpdate() {
-
-	myCounter += deltaTime;
-
-	//ƒJƒƒ‰ƒ^[ƒQƒbƒg‚ÌˆÊ’u‚ª“®‚­
-	CalcCameraMove_Field(myScene001, 10.0f, 0.1f, 180.0f, true);//ˆÚ“®‘¬“xAƒ}ƒEƒXˆÚ“®‚É‚æ‚éƒJƒƒ‰‰ñ“]ƒŒ[ƒgAƒJƒƒ‰‚Ì‰ñ“]‘¬“xiŠp“x/sjA@ã‰º‹ó’†ˆÚ“®‚ðŽg‚¤‚©‚Ç‚¤‚©
-
-	//‹ó‚ÍƒJƒƒ‰‚ð’†S‚É‚·‚é
-	sky001->SetPos(camera001->pos);
-
-	//ƒC[ƒWƒ“ƒO‚ÌŒvŽZ
-	Easing();
-
-	//Update
-	UpdateScene(myScene001);
-
-
-
-}
 
 
 void EasingTest::Easing() {
 
-	//ƒJƒEƒ“ƒ^[‚ðA0.0`1.0‚É•ÏŠ·
+	//ã‚«ã‚¦ãƒ³ã‚¿ãƒ¼ã‚’ã€0.0ï½ž1.0ã«å¤‰æ›
 	float tm_1 = SF::Easing::GetTimeFactor(myCounter, 1.0f, 0.5f);				//counter, transition_time, idle_time, counter_offset
 	float tm_2 = SF::Easing::GetTimeFactor(myCounter, 1.0f, 0.5f, 0.0f);		//counter, transition_time, idle_time, counter_offset
 
@@ -98,7 +16,7 @@ void EasingTest::Easing() {
 	tm_3 = tRes.time;
 	*/
 
-	//ƒWƒƒƒ“ƒv ƒeƒXƒg—p
+	//ã‚¸ãƒ£ãƒ³ãƒ— ãƒ†ã‚¹ãƒˆç”¨
 	float y_1 = 0.0f;
 	float y_2 = 0.0f;
 
@@ -107,11 +25,11 @@ void EasingTest::Easing() {
 		y_2 = 2.0f * sin(XM_PI * tm_2);
 	}
 
-	//ƒC[ƒWƒ“ƒO‰ÁH
+	//ã‚¤ãƒ¼ã‚¸ãƒ³ã‚°åŠ å·¥
 	{
 		const int type = 15;
 
-		//ƒLƒƒƒ‰
+		//ã‚­ãƒ£ãƒ©
 		switch (type) {
 		case 1:		tm_1 = SF::Easing::EaseIn(tm_1);					break;
 		case 2:		tm_1 = SF::Easing::EaseInCubic(tm_1);				break;
@@ -138,7 +56,7 @@ void EasingTest::Easing() {
 		default: break;
 		}
 
-		//ƒŒƒo[
+		//ãƒ¬ãƒãƒ¼
 		switch (type) {
 		case 1:		tm_3 = SF::Easing::EaseIn(tm_3);					break;
 		case 2:		tm_3 = SF::Easing::EaseInCubic(tm_3);				break;
@@ -171,23 +89,23 @@ void EasingTest::Easing() {
 
 
 
-	//0.0`1.0‚É”º‚¤AˆÊ’u‚Ì‘JˆÚ
-	SF::SFFLOAT3 monPos_1 = SF::LerpValue(SF::SFFLOAT3(0.0f, 0.0f, 0.0f), SF::SFFLOAT3(0.0f, 0.0f, 3.0f), tm_1);	//o”­“_A“ž’…“_
+	//0.0ï½ž1.0ã«ä¼´ã†ã€ä½ç½®ã®é·ç§»
+	SF::SFFLOAT3 monPos_1 = SF::LerpValue(SF::SFFLOAT3(0.0f, 0.0f, 0.0f), SF::SFFLOAT3(0.0f, 0.0f, 3.0f), tm_1);	//å‡ºç™ºç‚¹ã€åˆ°ç€ç‚¹
 	SF::SFFLOAT3 monPos_2 = SF::LerpValue(SF::SFFLOAT3(2.0f, 0.0f, 0.0f), SF::SFFLOAT3(2.0f, 0.0f, 3.0f), tm_2);
 
 	/*
-	if (tRes.step == 1) {//•Ô‚è
+	if (tRes.step == 1) {//è¿”ã‚Š
 		tm_3 = 1.0f - tm_3;
 	}
 	*/
-	//0.0`1.0‚É”º‚¤A‰ñ“]‚Ì‘JˆÚ
+	//0.0ï½ž1.0ã«ä¼´ã†ã€å›žè»¢ã®é·ç§»
 	float rot_1 = SF::LerpValue(-30.0f, 30.0f, tm_3);
 	float rot_2 = SF::LerpValue(-30.0f, 30.0f, tm_4);
 
-	//ˆÊ’u‚ðÝ’è
+	//ä½ç½®ã‚’è¨­å®š
 	chara001->SetIndexedPosRot(0, XMFLOAT3{ monPos_1.x, monPos_1.y + y_1, monPos_1.z }, XMFLOAT3{ 0.0f, 0.0f, 0.0f });
 	chara001->SetIndexedPosRot(1, XMFLOAT3{ monPos_2.x, monPos_2.y + y_2, monPos_2.z }, XMFLOAT3{ 0.0f, 0.0f, 0.0f });
-	//Šp“x‚ðÝ’è
+	//è§’åº¦ã‚’è¨­å®š
 
 	lever001->SetIndexedRot(0, XMFLOAT3{ rot_1, 0.0f, 0.0f });
 	lever001->SetIndexedRot(1, XMFLOAT3{ rot_2, 0.0f, 0.0f });
@@ -197,15 +115,6 @@ void EasingTest::Easing() {
 
 
 
-void EasingTest::OnRender() {
-
-	RenderScene(myScene001, SCENE_RENDERTYPE_NORMAL);
-
-}
-
-void EasingTest::OnDestroy() {
-
-}
 
 
 
