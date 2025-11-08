@@ -18,7 +18,7 @@
 カウンターを周期的に正規化し、`0.0〜1.0`の範囲にマッピングします。
 
 - **counter** : 現在の時間やカウント値  
-- **transition_time** : 遷移期間（0.0〜1.0へ進む時間）  
+- **transition_time** : 遷移期間（0.0〜1.0へ変換する時間）  
 - **idle_time** : 遷移完了後の待機時間  
 - **counter_offset** : カウンターのオフセット  
 
@@ -59,11 +59,9 @@
 
 ### `float EaseInOut(float t)`  
 前半加速・後半減速するスムーズなカーブ。  
-式: `t² * (3 - 2t)`。
 
 ### `float EaseInOutQuint(float t)`  
 滑らかで自然な開始・終了を行う高次補間。  
-式: `6t⁵ - 15t⁴ + 10t³`。
 
 ### `float EaseInBack(float t, float strength = 2.0f)`  
 開始時に少し戻る（バック）動作。`strength`で戻り量を調整。
