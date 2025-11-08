@@ -48,7 +48,7 @@ void EasingTest::Easing() {
 		case 14:	tm_1 = SF::Easing::EaseOutBackCubic(tm_1, 5.0f);	break;
 		
 		case 15:	tm_1 = SF::Easing::EaseOutElastic(tm_1);			break;
-		case 16:	tm_1 = SF::Easing::EaseOutElastic(tm_1, 10.0f);		break;	//bounces, amplitude
+		case 16:	tm_1 = SF::Easing::EaseOutElastic(tm_1, 10.0f);		break;	//bounces
 
 		case 17:	tm_1 = SF::Easing::EaseOutBounce(tm_1);				break;
 		case 18:	tm_1 = SF::Easing::EaseOutBounce(tm_1, 10.0f);		break;	//bounces
@@ -75,7 +75,7 @@ void EasingTest::Easing() {
 		case 14:	tm_3 = SF::Easing::EaseOutBackCubic(tm_3, 5.0f);	break;
 
 		case 15:	tm_3 = SF::Easing::EaseOutElastic(tm_3);			break;
-		case 16:	tm_3 = SF::Easing::EaseOutElastic(tm_3, 10.0f);		break;	//bounces, amplitude
+		case 16:	tm_3 = SF::Easing::EaseOutElastic(tm_3, 10.0f);		break;	//bounces
 
 		case 17:	tm_3 = SF::Easing::EaseOutBounce(tm_3);				break;
 		case 18:	tm_3 = SF::Easing::EaseOutBounce(tm_3, 10.0f);		break;	//bounces
@@ -112,6 +112,7 @@ void EasingTest::Easing() {
 
 
 }
+
 
 
 
