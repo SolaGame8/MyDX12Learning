@@ -8,7 +8,7 @@
 
 ## 時間制御関数
 
-#### `float GetTimeFactor(float counter, float transition_time = 1.0f, float idle_time = 0.0f, float counter_offset = 0.0f)`
+### `float GetTimeFactor(float counter, float transition_time = 1.0f, float idle_time = 0.0f, float counter_offset = 0.0f)`
 カウンターを周期的に正規化し、`0.0〜1.0`の範囲にマッピングします。
 
 
@@ -23,14 +23,14 @@
 
 ---
 
-#### `float GetPingPongTimeFactor(float counter, float transition_time = 1.0f, float idle_time = 0.0f, float counter_offset = 0.0f)`
+### `float GetPingPongTimeFactor(float counter, float transition_time = 1.0f, float idle_time = 0.0f, float counter_offset = 0.0f)`
 カウンターを往復 (`0.0→1.0→0.0`) させる時間制御。
 
 戻り値: ピンポン動作の正規化時間。
 
 ---
 
-#### `TIMEFACTOR_RESULT GetSteppedTimeFactor(float counter, int steps, float transition_time = 1.0f, float idle_time = 0.0f, float counter_offset = 0.0f)`
+### `TIMEFACTOR_RESULT GetSteppedTimeFactor(float counter, int steps, float transition_time = 1.0f, float idle_time = 0.0f, float counter_offset = 0.0f)`
 ステップ数を指定して、複数段階で時間を分割します。
 
 戻り値:  
