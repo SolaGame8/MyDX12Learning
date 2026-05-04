@@ -34,6 +34,7 @@
 | Steam Deckコントローラ | controller_neptune |
 | Steamコントローラ | controller_steamcontroller_gordon |
 | Xbox 360 | controller_xbox360 |
+| Xbox One | controller_xboxone |
 | Xbox One Eliteコントローラー | controller_xboxelite |
 | PlayStation 3コントローラー | controller_ps3 |
 | PlayStation 4コントローラー | controller_ps4 |
