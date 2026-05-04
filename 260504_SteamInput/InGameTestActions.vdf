@@ -1,0 +1,188 @@
+"In Game Actions"
+{
+	"actions"
+	{
+		"InGame"
+		{
+			"title"					"#loc_title"
+			"Button"
+			{
+				// --- メインボタン ---
+				"A"					"A"
+				"B"					"B"
+				"X"					"X"
+				"Y"					"Y"
+
+				// --- ショルダー / スティッククリック ---
+				"L1"				"L1"
+				"R1"				"R1"
+				"L3"				"L3"
+				"R3"				"R3"
+
+				// --- システム / 十字キー ---
+				"SELECT"			"SELECT"
+				"START"				"START"
+				"D_UP"				"D_UP"
+				"D_DOWN"			"D_DOWN"
+				"D_LEFT"			"D_LEFT"
+				"D_RIGHT"			"D_RIGHT"
+
+				// --- 背面ボタン (Steam Deck / Xbox Elite / PS5 Edge 等) ---
+				"L4"				"L4"
+				"L5"				"L5"
+				"R4"				"R4"
+				"R5"				"R5"
+
+				// --- トラックパッド接触・クリック (Deck / PS4 / PS5) ---
+				"L_PAD_TOUCH"		"L_PAD_TOUCH"
+				"L_PAD_CLICK"		"L_PAD_CLICK"
+				"R_PAD_TOUCH"		"R_PAD_TOUCH"
+				"R_PAD_CLICK"		"R_PAD_CLICK"
+			}
+			"StickPadGyro"
+			{
+				// --- スティック軸 ---
+				"L_STICK"		{ "title" "L_STICK"	"input_mode" "joystick_move" }
+				"R_STICK"		{ "title" "R_STICK"	"input_mode" "joystick_move" }
+
+				// --- アナログトリガー ---
+				"L2"			{ "title" "L2"		"input_mode" "trigger" }
+				"R2"			{ "title" "R2"		"input_mode" "trigger" }
+				
+				// --- トラックパッド座標 (スティック扱いで-1.0～1.0を取得) ---
+				"L_PAD"			{ "title" "L_PAD"	"input_mode" "joystick_move" }	//入力はjoystick_move（ベクトル）
+				"R_PAD"			{ "title" "R_PAD"	"input_mode" "joystick_move" }
+
+				// --- ジャイロ ---
+				"GYRO"			{ "title" "GYRO"	"input_mode" "gyro" }
+			}
+		}
+	}
+
+	"localization"
+	{
+		"english"
+		{
+			"loc_title"			"Game Input"
+		}
+	}
+
+	"controller_mappings"
+	{
+		// メイン4ボタン
+		"group"
+		{
+			"id"		"0"
+			"mode"		"four_buttons"
+			"inputs"
+			{
+				"button_a"		{ "activators" { "full_push" { "action" "A" } } }
+				"button_b"		{ "activators" { "full_push" { "action" "B" } } }
+				"button_x"		{ "activators" { "full_push" { "action" "X" } } }
+				"button_y"		{ "activators" { "full_push" { "action" "Y" } } }
+			}
+		}
+
+		// 十字キー
+		"group"
+		{
+			"id"		"1"
+			"mode"		"dpad"
+			"inputs"
+			{
+				"dpad_up"		{ "activators" { "full_push" { "action" "D_UP" } } }
+				"dpad_down"		{ "activators" { "full_push" { "action" "D_DOWN" } } }
+				"dpad_left"		{ "activators" { "full_push" { "action" "D_LEFT" } } }
+				"dpad_right"	{ "activators" { "full_push" { "action" "D_RIGHT" } } }
+			}
+		}
+
+		// 左スティック軸
+		"group"
+		{
+			"id"		"2"
+			"mode"		"joystick_move"
+			"inputs" { "stick" { "action" "L_STICK" } }
+		}
+
+		// 右スティック軸
+		"group"
+		{
+			"id"		"3"
+			"mode"		"joystick_move"
+			"inputs" { "stick" { "action" "R_STICK" } }
+		}
+
+		// 左トリガー (L2)
+		"group"
+		{
+			"id"		"4"
+			"mode"		"trigger"
+			"inputs" { "trigger" { "action" "L2" } }
+		}
+
+		// 右トリガー (R2)
+		"group"
+		{
+			"id"		"5"
+			"mode"		"trigger"
+			"inputs" { "trigger" { "action" "R2" } }
+		}
+
+		// デジタルスイッチ（背面・バンパー・クリック・パッド接触）
+		"group"
+		{
+			"id"		"6"
+			"mode"		"switches"
+			"inputs"
+			{
+				"left_bumper"				{ "activators" { "full_push" { "action" "L1" } } }
+				"right_bumper"				{ "activators" { "full_push" { "action" "R1" } } }
+				"left_stick_click"			{ "activators" { "full_push" { "action" "L3" } } }
+				"right_stick_click"			{ "activators" { "full_push" { "action" "R3" } } }
+				"start"						{ "activators" { "full_push" { "action" "START" } } }
+				"back"						{ "activators" { "full_push" { "action" "SELECT" } } }
+				"rear_button_left_upper"	{ "activators" { "full_push" { "action" "L4" } } }
+				"rear_button_left_lower"	{ "activators" { "full_push" { "action" "L5" } } }
+				"rear_button_right_upper"	{ "activators" { "full_push" { "action" "R4" } } }
+				"rear_button_right_lower"	{ "activators" { "full_push" { "action" "R5" } } }
+				"left_pad_touch"			{ "activators" { "full_push" { "action" "L_PAD_TOUCH" } } }
+				"left_pad_click"			{ "activators" { "full_push" { "action" "L_PAD_CLICK" } } }
+				"right_pad_touch"			{ "activators" { "full_push" { "action" "R_PAD_TOUCH" } } }
+				"right_pad_click"			{ "activators" { "full_push" { "action" "R_PAD_CLICK" } } }
+			}
+		}
+
+		// 左トラックパッド座標
+		"group"
+		{
+			"id"		"7"
+			//"mode"		"joystick_move"				//joystick_moveにすると、中心(0, 0)からの値になる。座標(-1.0 ~ 1.0)として扱う
+			"mode"		"joystick_mouse"				//joystick_mouseにすると、相対の移動量になる。正規化された(-1.0 ~ 1.0) の範囲にクランプ
+			"inputs" 
+			{ 
+				//"stick"
+				"touch"				//原点を持たない自由な二次元スライド平面。　接触中のみ値が出る。離すと0になる
+				{ "action" "L_PAD" } 
+			}
+		}
+
+		// 右トラックパッド座標
+		"group"
+		{
+			"id"		"8"
+			//"mode"		"joystick_move"
+			"mode"		"joystick_mouse"
+			//"inputs" { "stick" { "action" "R_PAD" } }
+			"inputs" { "touch" { "action" "R_PAD" } }
+		}
+
+		// ジャイロ
+		"group"
+		{
+			"id"		"9"
+			"mode"		"gyro"
+			"inputs" { "gyro" { "action" "GYRO" } }
+		}
+	}
+}
