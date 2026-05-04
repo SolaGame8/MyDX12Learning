@@ -69,7 +69,7 @@
 #を付けたものがローカライズ設定で置き換わる
 
 ```vdf
-"actions"
+	"actions"
 	{
 		"FPSControls"
 		{
