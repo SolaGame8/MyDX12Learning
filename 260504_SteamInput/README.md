@@ -3,6 +3,32 @@
 
 # Steam Input VDFの書き方
 
+## コンフィグ
+
+```vdf
+"configurations"
+	{
+		"controller_xboxone"
+		{
+			"0"
+			{
+				"path" "xbox_controller.vdf"
+			}
+		}
+		"controller_steamcontroller_gordon"
+		{
+			"0"
+			{
+				"path" "steam_controller.vdf"
+			}
+			"1"
+			{
+				"path" "steam_controller_motion_controls.vdf"
+			}
+		}
+	}
+```
+
 ## Action Sets の定義
 ゲーム内の「状態」を定義
 ```vdf
@@ -106,6 +132,7 @@
 
 | キー | 内容 |
 |------|------|
+| configurations | コンフィグ |
 | actions | アクション登録 |
 | localization | 言語ローカライズ |
 | controller_mappings | コントローラーのキー割り当て |
