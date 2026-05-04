@@ -65,6 +65,43 @@
 }
 ```
 
+## ローカライズ
+#を付けたものがローカライズ設定で置き換わる
+
+```vdf
+"actions"
+	{
+		"FPSControls"
+		{
+			"title"					"#Set_FPSControls"
+			"StickPadGyro"
+			{
+				"Move"
+				{
+					"title"			"#Action_Move"
+					"input_mode"	"joystick_move"
+				}
+				"Camera"
+				{
+					"title"			"#Action_Camera"
+					"input_mode"	"absolute_mouse"
+				}
+			}
+		}
+	}
+	"localization"
+	{
+		"english"
+		{
+			"Action_Move"			"Movement"
+			"Action_Camera"			"Camera"
+		}
+	}
+
+```
+
+
+
 ## 大項目
 
 | キー | 内容 |
