@@ -26,7 +26,7 @@
     {
         "Button"
         {
-            "jump"      "Jump"
+            "jump"      "Jump"    //"jump" 内部で識別するためのID。   "Jump" 表示用（ラベル）
             "fire"      "Shoot"
         }
         "StickPadGyro"
