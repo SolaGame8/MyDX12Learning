@@ -48,7 +48,7 @@
 "group"
 {
     "id"        "0"
-    "mode"      "four_buttons"  // 4つのボタンとして扱う設定
+    "mode"      "four_buttons"  // 4つのボタンとして扱う Mode設定
     "inputs"
     {
         "button_a"    //ボタンA
