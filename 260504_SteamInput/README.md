@@ -121,7 +121,7 @@
 
 | 要素 | mode | Origin | 内容 |
 |------|------|--------|------|
-| Pull | trigger | LeftTrigger_Pull | アナログ |
+| Pull | trigger | LeftTrigger_Pull | 引き量（0%〜100%） |
 | Click | trigger | LeftTrigger_Click | 押し込み |
 
 ---
