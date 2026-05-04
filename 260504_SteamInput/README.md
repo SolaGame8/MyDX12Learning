@@ -1,5 +1,68 @@
 ＊AIに聞いたものなので、嘘が含まれる可能性があります
 
+## VDFの書き方
+
+## Action Sets の定義
+ゲーム内の「状態」を定義
+```vdf
+"Action Sets"
+{
+    "InGame"    // プレイ中の設定
+    {
+        "Sticky"        "0"
+        "ID"            "0"
+    }
+}
+```
+
+## Actions (Manifest) の定義
+プレイヤーができる具体的なアクションをリストアップ
+
+```vdf
+"actions"
+{
+    "InGame"
+    {
+        "Button"
+        {
+            "jump"      "Jump"
+            "fire"      "Shoot"
+        }
+        "StickPadGyro"
+        {
+            "move"      "Move"
+        }
+    }
+}
+```
+
+
+## Group の作成
+物理ボタンとアクションを紐付けます
+```vdf
+"group"
+{
+    "id"        "0"
+    "mode"      "four_buttons"  // 4つのボタンとして扱う設定
+    "inputs"
+    {
+        "button_a"
+        {
+            "activators"
+            {
+                "full_push"
+                {
+                    "action"    "jump"  // Aボタンでjumpアクション発動
+                }
+            }
+        }
+    }
+}
+```
+
+
+
+
 
 # Steam Input VDF 構造リファレンス
 
