@@ -26,31 +26,57 @@
 ## プラットフォーム別拡張入力
 
 ### PlayStation
-- center_pad_click: タッチパッド中央押し込み  
-- left_pad_click: 左側押し込み  
-- right_pad_click: 右側押し込み  
-- ps5_mute: ミュートボタン  
-- left_fn / right_fn: ファンクションボタン  
+
+| VDFキー名 | 内容 |
+|----------|------|
+| center_pad_click | タッチパッド中央押し込み |
+| left_pad_click | タッチパッド左側押し込み |
+| right_pad_click | タッチパッド右側押し込み |
+| ps5_mute | ミュートボタン |
+| left_fn | ファンクションボタン |
+| right_fn | ファンクションボタン |
 
 ### Steam Deck
-- l4 / l5: 背面ボタン左  
-- r4 / r5: 背面ボタン右  
-- left_stick_touch / right_stick_touch: スティック接触  
-- left_pad_touch / right_pad_touch: パッド接触  
+
+| VDFキー名 | 内容 |
+|----------|------|
+| l4 | 背面ボタン左（上） |
+| l5 | 背面ボタン左（下） |
+| r4 | 背面ボタン右（上） |
+| r5 | 背面ボタン右（下） |
+| left_stick_touch | 左スティック接触 |
+| right_stick_touch | 右スティック接触 |
+| left_pad_touch | 左パッド接触 |
+| right_pad_touch | 右パッド接触 |
 
 ### Nintendo Switch
-- button_capture: キャプチャーボタン  
-- left_grip_lower / upper: Joy-Con(L) SR/SL  
-- right_grip_lower / upper: Joy-Con(R) SL/SR  
+
+| VDFキー名 | 内容 |
+|----------|------|
+| button_capture | キャプチャーボタン |
+| left_grip_lower | Joy-Con(L) SR |
+| left_grip_upper | Joy-Con(L) SL |
+| right_grip_lower | Joy-Con(R) SL |
+| right_grip_upper | Joy-Con(R) SR |
 
 ### Xbox
-- left_grip_upper / lower: 背面パドル左  
-- right_grip_upper / lower: 背面パドル右  
-- button_share: シェアボタン  
+
+| VDFキー名 | 内容 |
+|----------|------|
+| left_grip_upper | 背面パドル左（上） |
+| left_grip_lower | 背面パドル左（下） |
+| right_grip_upper | 背面パドル右（上） |
+| right_grip_lower | 背面パドル右（下） |
+| button_share | シェアボタン |
 
 ### その他
-- y1 / y2: Legion Go ボタン  
-- m1 / m2: マクロボタン  
+
+| VDFキー名 | 内容 |
+|----------|------|
+| y1 | Legion Go ボタン |
+| y2 | Legion Go ボタン |
+| m1 | マクロボタン |
+| m2 | マクロボタン |
 
 ---
 
@@ -102,26 +128,25 @@
 
 ## Mode (詳細カテゴリ)
 
-### スティック・マウス系
-- joystick_move (JoystickMove)
-- joystick_camera (JoystickCamera)
-- absolute_mouse (AbsoluteMouse)
-- relative_mouse (RelativeMouse)
-- mouse_joystick (MouseJoystick)
-- gyro
+| カテゴリ | VDF mode 名 | Enum | 内容・用途 |
+|----------|------------|------|------------|
+| スティック・マウス | joystick_move | JoystickMove | 移動操作 |
+| スティック・マウス | joystick_camera | JoystickCamera | 視点操作 |
+| スティック・マウス | absolute_mouse | AbsoluteMouse | マウス扱い |
+| スティック・マウス | relative_mouse | RelativeMouse | 相対マウス |
+| スティック・マウス | mouse_joystick | MouseJoystick | マウス→スティック変換 |
+| スティック・マウス | gyro | - | ジャイロ |
 
-### ボタン系
-- four_buttons (FourButtons)
-- dpad (Dpad)
-- single_button (SingleButton)
-- switches (Switches)
-- trigger (Trigger)
+| ボタン | four_buttons | FourButtons | ABXY |
+| ボタン | dpad | Dpad | 十字キー |
+| ボタン | single_button | SingleButton | 単一ボタン |
+| ボタン | switches | Switches | トグル |
+| ボタン | trigger | Trigger | トリガー |
 
-### UI系
-- scroll_wheel (ScrollWheel)
-- radial_menu (RadialMenu)
-- touch_menu (TouchMenu)
-- mouse_region (MouseRegion)
+| UI | scroll_wheel | ScrollWheel | ホイール |
+| UI | radial_menu | RadialMenu | 円形メニュー |
+| UI | touch_menu | TouchMenu | グリッドUI |
+| UI | mouse_region | MouseRegion | 領域制限 |
 
 ---
 
