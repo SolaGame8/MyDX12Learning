@@ -1,4 +1,132 @@
-# Steam Input VDF リファレンス整理
+# Steam Input VDF 構造リファレンス
+
+## トップ階層（"group"と同階層）
+
+| キー名 | 内容 |
+|--------|------|
+| controller_mappings | コントローラ設定全体 |
+| actions | アクション定義 |
+| action_layers | アクションレイヤー |
+| localization | ローカライズ |
+| settings | 全体設定 |
+| preset | プリセット |
+| description | 説明 |
+| title | タイトル |
+| author | 作者 |
+| export_type | 出力タイプ |
+
+---
+
+## group 内キー一覧
+
+| キー名 | 内容 |
+|--------|------|
+| id | グループID |
+| mode | 動作モード |
+| inputs | 入力定義 |
+| settings | グループ設定 |
+| name | 表示名 |
+| description | 説明 |
+| action_set | 所属アクションセット |
+| action_layer | レイヤー |
+| source | 入力元 |
+| active | 有効状態 |
+| visible | 表示制御 |
+| group_type | グループ種類 |
+| parent | 親グループ |
+| priority | 優先度 |
+
+---
+
+## inputs 内キー一覧
+
+| キー名 | 内容 |
+|--------|------|
+| bindings | バインド定義 |
+| activators | 発火条件 |
+| mode_shift | モードシフト |
+| chorded_button | 同時押し |
+| haptic | 振動 |
+| settings | 入力単位設定 |
+| deadzone | デッドゾーン |
+| invert_x | X反転 |
+| invert_y | Y反転 |
+
+---
+
+## bindings 内キー一覧
+
+| キー名 | 内容 |
+|--------|------|
+| binding | 実際のアクション |
+| path | 内部パス |
+| command | 旧形式コマンド |
+
+---
+
+## activators 内キー一覧
+
+| キー名 | 内容 |
+|--------|------|
+| full_press | 完全押し込み |
+| soft_press | 半押し |
+| double_press | ダブルタップ |
+| long_press | 長押し |
+| release_press | 離した時 |
+| start_press | 押した瞬間 |
+
+---
+
+## activator 配下キー
+
+| キー名 | 内容 |
+|--------|------|
+| bindings | バインド |
+| settings | 設定 |
+
+---
+
+## settings 内キー（代表例）
+
+| キー名 | 内容 |
+|--------|------|
+| sensitivity | 感度 |
+| invert_x | X反転 |
+| invert_y | Y反転 |
+| deadzone | デッドゾーン |
+| haptic_intensity | 振動強度 |
+| output_joystick | 出力スティック |
+| gyro_axis | ジャイロ軸 |
+| gyro_mode | ジャイロモード |
+| scroll_wheel_origin | スクロール入力元 |
+| friction | 摩擦 |
+| acceleration | 加速 |
+| edge_spin_speed | 端スピン速度 |
+| snap_to_center | 中央吸着 |
+
+---
+
+## 特殊ノード
+
+### mode_shift
+
+| キー名 | 内容 |
+|--------|------|
+| button | 切替ボタン |
+
+### chorded_button
+
+| キー名 | 内容 |
+|--------|------|
+| button | 同時押しボタン |
+
+
+---
+---
+---
+
+
+# Steam Input VDF リファレンス
 
 ## 基本ボタン対応表
 
