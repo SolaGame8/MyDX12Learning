@@ -129,14 +129,14 @@
 ## Mode (詳細カテゴリ)
 
 ### スティック・マウス
-| カテゴリ | VDF mode 名 | Enum | 内容・用途 |
-|----------|------------|------|------------|
-| スティック・マウス | joystick_move | JoystickMove | 移動操作 |
-| スティック・マウス | joystick_camera | JoystickCamera | 視点操作 |
-| スティック・マウス | absolute_mouse | AbsoluteMouse | マウス扱い |
-| スティック・マウス | relative_mouse | RelativeMouse | 相対マウス |
-| スティック・マウス | mouse_joystick | MouseJoystick | マウス→スティック変換 |
-| スティック・マウス | gyro | - | ジャイロ |
+| VDF mode 名 | Enum | 内容・用途 |
+|------------|------|------------|
+| joystick_move | JoystickMove | 移動操作 |
+| joystick_camera | JoystickCamera | 視点操作 |
+| absolute_mouse | AbsoluteMouse | マウス扱い |
+| relative_mouse | RelativeMouse | 相対マウス |
+| mouse_joystick | MouseJoystick | マウス→スティック変換 |
+| gyro | - | ジャイロ |
 
 ### ボタン
 | カテゴリ | VDF mode 名 | Enum | 内容・用途 |
