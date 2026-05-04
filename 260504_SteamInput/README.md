@@ -29,6 +29,24 @@
 	}
 ```
 
+| コントローラー | キー |
+|------|------|
+| Steam Deckコントローラ | controller_neptune |
+| Steamコントローラ | controller_steamcontroller_gordon |
+| Xbox 360 | controller_xbox360 |
+| Xbox One Eliteコントローラー | controller_xboxelite |
+| PlayStation 3コントローラー | controller_ps3 |
+| PlayStation 4コントローラー | controller_ps4 |
+| DualSenseコントローラー | controller_ps5 |
+| Nintendo Switch Proコントローラー | controller_switch_pro |
+| Nintendo Switch 2 Proコントローラー | controller_switch2_pro |
+| Nintendo Joy-Con（L） | controller_switch_joycon_left |
+| Nintendo Joy-Con（R） | controller_switch_joycon_right |
+| Nintendo Joy-Conセット | controller_switch_joycon_pair |
+| Remote Playタッチコントローラ | controller_mobile_touch |
+| 一般的なゲームパッド | controller_generic |
+
+
 ## Action Sets の定義
 ゲーム内の「状態」を定義
 ```vdf
