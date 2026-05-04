@@ -108,6 +108,7 @@
 |------|------|
 | actions | アクション登録 |
 | localization | 言語ローカライズ |
+| configurations | コントローラー毎のキー割り当て |
 
 
 ## 項目
