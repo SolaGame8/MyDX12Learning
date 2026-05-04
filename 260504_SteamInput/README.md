@@ -5,12 +5,12 @@
 | キー名 | 内容 |
 |--------|------|
 | group | 特定の入力ソース（十字キー、スティック、ボタン群など）に対する「挙動のテンプレート」 |
+| preset | プリセット。グループをさらに抽象化したもの |
 | controller_mappings | コントローラ設定全体 |
 | actions | アクション定義 |
 | action_layers | アクションレイヤー |
 | localization | ローカライズ |
 | settings | 全体設定 |
-| preset | プリセット |
 | description | 説明 |
 | title | タイトル |
 | author | 作者 |
