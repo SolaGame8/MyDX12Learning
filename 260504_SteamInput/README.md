@@ -108,7 +108,7 @@
 |------|------|
 | actions | アクション登録 |
 | localization | 言語ローカライズ |
-| controller_mappings | コントローラー毎のキー割り当て |
+| controller_mappings | コントローラーのキー割り当て |
 
 
 ## 項目
