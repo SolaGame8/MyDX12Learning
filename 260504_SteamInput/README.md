@@ -88,6 +88,29 @@
 | disabled | 全て | そのパーツの入力を完全に無効化する（誤動作防止） |
 
 ---
+## 基本ボタン対応表
+
+| VDFキー名 | 対応する部位 |
+|----------|-------------|
+| button_a | A / × / B(Switch下) |
+| button_b | B / ◯ / A(Switch右) |
+| button_x | X / □ / Y(Switch左) |
+| button_y | Y / △ / X(Switch上) |
+| left_shoulder | LB / L1 / L |
+| right_shoulder | RB / R1 / R |
+| left_trigger | LT / L2 / ZL (押し込み) |
+| right_trigger | RT / R2 / ZR (押し込み) |
+| button_start | Menu / Options / Start / Plus |
+| button_back | View / Share / Back / Minus |
+| left_stick_click | 左スティック押し込み |
+| right_stick_click | 右スティック押し込み |
+| dpad_up | 十字キー 上 |
+| dpad_down | 十字キー 下 |
+| dpad_left | 十字キー 左 |
+| dpad_right | 十字キー 右 |
+
+---
+---
 
 # Steam Input VDF 構造リファレンス
 
@@ -224,28 +247,7 @@
 
 # Steam Input VDF リファレンス
 
-## 基本ボタン対応表
 
-| VDFキー名 | 対応する部位 |
-|----------|-------------|
-| button_a | A / × / B(Switch下) |
-| button_b | B / ◯ / A(Switch右) |
-| button_x | X / □ / Y(Switch左) |
-| button_y | Y / △ / X(Switch上) |
-| left_shoulder | LB / L1 / L |
-| right_shoulder | RB / R1 / R |
-| left_trigger | LT / L2 / ZL (押し込み) |
-| right_trigger | RT / R2 / ZR (押し込み) |
-| button_start | Menu / Options / Start / Plus |
-| button_back | View / Share / Back / Minus |
-| left_stick_click | 左スティック押し込み |
-| right_stick_click | 右スティック押し込み |
-| dpad_up | 十字キー 上 |
-| dpad_down | 十字キー 下 |
-| dpad_left | 十字キー 左 |
-| dpad_right | 十字キー 右 |
-
----
 
 ## プラットフォーム別拡張入力
 
