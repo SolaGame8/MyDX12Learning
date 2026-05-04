@@ -165,6 +165,64 @@
 
 ---
 
+## プラットフォーム別拡張入力
+
+### PlayStation
+
+| VDFキー名 | 内容 |
+|----------|------|
+| center_pad_click | タッチパッド中央押し込み |
+| left_pad_click | タッチパッド左側押し込み |
+| right_pad_click | タッチパッド右側押し込み |
+| ps5_mute | ミュートボタン |
+| left_fn | ファンクションボタン |
+| right_fn | ファンクションボタン |
+
+### Steam Deck
+
+| VDFキー名 | 内容 |
+|----------|------|
+| l4 | 背面ボタン左（上） |
+| l5 | 背面ボタン左（下） |
+| r4 | 背面ボタン右（上） |
+| r5 | 背面ボタン右（下） |
+| left_stick_touch | 左スティック接触 |
+| right_stick_touch | 右スティック接触 |
+| left_pad_touch | 左パッド接触 |
+| right_pad_touch | 右パッド接触 |
+
+### Nintendo Switch
+
+| VDFキー名 | 内容 |
+|----------|------|
+| button_capture | キャプチャーボタン |
+| left_grip_lower | Joy-Con(L) SR |
+| left_grip_upper | Joy-Con(L) SL |
+| right_grip_lower | Joy-Con(R) SL |
+| right_grip_upper | Joy-Con(R) SR |
+
+### Xbox
+
+| VDFキー名 | 内容 |
+|----------|------|
+| left_grip_upper | 背面パドル左（上） |
+| left_grip_lower | 背面パドル左（下） |
+| right_grip_upper | 背面パドル右（上） |
+| right_grip_lower | 背面パドル右（下） |
+| button_share | シェアボタン |
+
+### その他
+
+| VDFキー名 | 内容 |
+|----------|------|
+| y1 | Legion Go ボタン |
+| y2 | Legion Go ボタン |
+| m1 | マクロボタン |
+| m2 | マクロボタン |
+
+---
+
+
 ## アクション起動条件（Activators）一覧
 
 | 起動条件キー | 内容・発動タイミング |
@@ -319,62 +377,7 @@
 
 
 
-## プラットフォーム別拡張入力
 
-### PlayStation
-
-| VDFキー名 | 内容 |
-|----------|------|
-| center_pad_click | タッチパッド中央押し込み |
-| left_pad_click | タッチパッド左側押し込み |
-| right_pad_click | タッチパッド右側押し込み |
-| ps5_mute | ミュートボタン |
-| left_fn | ファンクションボタン |
-| right_fn | ファンクションボタン |
-
-### Steam Deck
-
-| VDFキー名 | 内容 |
-|----------|------|
-| l4 | 背面ボタン左（上） |
-| l5 | 背面ボタン左（下） |
-| r4 | 背面ボタン右（上） |
-| r5 | 背面ボタン右（下） |
-| left_stick_touch | 左スティック接触 |
-| right_stick_touch | 右スティック接触 |
-| left_pad_touch | 左パッド接触 |
-| right_pad_touch | 右パッド接触 |
-
-### Nintendo Switch
-
-| VDFキー名 | 内容 |
-|----------|------|
-| button_capture | キャプチャーボタン |
-| left_grip_lower | Joy-Con(L) SR |
-| left_grip_upper | Joy-Con(L) SL |
-| right_grip_lower | Joy-Con(R) SL |
-| right_grip_upper | Joy-Con(R) SR |
-
-### Xbox
-
-| VDFキー名 | 内容 |
-|----------|------|
-| left_grip_upper | 背面パドル左（上） |
-| left_grip_lower | 背面パドル左（下） |
-| right_grip_upper | 背面パドル右（上） |
-| right_grip_lower | 背面パドル右（下） |
-| button_share | シェアボタン |
-
-### その他
-
-| VDFキー名 | 内容 |
-|----------|------|
-| y1 | Legion Go ボタン |
-| y2 | Legion Go ボタン |
-| m1 | マクロボタン |
-| m2 | マクロボタン |
-
----
 
 
 
