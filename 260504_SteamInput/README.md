@@ -144,7 +144,8 @@
 	}
 
 ```
-API言語コード  
+
+### API言語コード
 https://partner.steamgames.com/doc/store/localization/languages
 
 ## 大項目
