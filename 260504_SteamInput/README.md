@@ -137,12 +137,16 @@
 | スティック・マウス | mouse_joystick | MouseJoystick | マウス→スティック変換 |
 | スティック・マウス | gyro | - | ジャイロ |
 
+| カテゴリ | VDF mode 名 | Enum | 内容・用途 |
+|----------|------------|------|------------|
 | ボタン | four_buttons | FourButtons | ABXY |
 | ボタン | dpad | Dpad | 十字キー |
 | ボタン | single_button | SingleButton | 単一ボタン |
 | ボタン | switches | Switches | トグル |
 | ボタン | trigger | Trigger | トリガー |
 
+| カテゴリ | VDF mode 名 | Enum | 内容・用途 |
+|----------|------------|------|------------|
 | UI | scroll_wheel | ScrollWheel | ホイール |
 | UI | radial_menu | RadialMenu | 円形メニュー |
 | UI | touch_menu | TouchMenu | グリッドUI |
