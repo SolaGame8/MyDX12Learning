@@ -139,21 +139,21 @@
 | gyro | - | ジャイロ |
 
 ### ボタン
-| カテゴリ | VDF mode 名 | Enum | 内容・用途 |
-|----------|------------|------|------------|
-| ボタン | four_buttons | FourButtons | ABXY |
-| ボタン | dpad | Dpad | 十字キー |
-| ボタン | single_button | SingleButton | 単一ボタン |
-| ボタン | switches | Switches | トグル |
-| ボタン | trigger | Trigger | トリガー |
+| VDF mode 名 | Enum | 内容・用途 |
+|------------|------|------------|
+| four_buttons | FourButtons | ABXY |
+| dpad | Dpad | 十字キー |
+| single_button | SingleButton | 単一ボタン |
+| switches | Switches | トグル |
+| trigger | Trigger | トリガー |
 
 ### UI
-| カテゴリ | VDF mode 名 | Enum | 内容・用途 |
-|----------|------------|------|------------|
-| UI | scroll_wheel | ScrollWheel | ホイール |
-| UI | radial_menu | RadialMenu | 円形メニュー |
-| UI | touch_menu | TouchMenu | グリッドUI |
-| UI | mouse_region | MouseRegion | 領域制限 |
+| VDF mode 名 | Enum | 内容・用途 |
+|------------|------|------------|
+| scroll_wheel | ScrollWheel | ホイール |
+| radial_menu | RadialMenu | 円形メニュー |
+| touch_menu | TouchMenu | グリッドUI |
+| mouse_region | MouseRegion | 領域制限 |
 
 ---
 
