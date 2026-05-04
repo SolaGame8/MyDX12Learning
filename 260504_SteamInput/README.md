@@ -21,7 +21,7 @@
 ```vdf
 "actions"
 {
-    "InGame"
+    "InGame"    // プレイ中の設定
     {
         "Button"
         {
