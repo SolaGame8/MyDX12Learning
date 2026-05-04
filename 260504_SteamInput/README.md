@@ -46,7 +46,7 @@
     "mode"      "four_buttons"  // 4つのボタンとして扱う設定
     "inputs"
     {
-        "button_a"
+        "button_a"    //ボタンA
         {
             "activators"    //「どう押されたか」を検知する
             {
