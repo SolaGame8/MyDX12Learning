@@ -48,7 +48,7 @@
     {
         "button_a"
         {
-            "activators"
+            "activators"    //「どう押されたか」を検知する
             {
                 "full_push"
                 {
