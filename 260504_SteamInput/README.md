@@ -1,9 +1,10 @@
 # Steam Input VDF 構造リファレンス
 
-## トップ階層（"group"と同階層）
+## トップ階層
 
 | キー名 | 内容 |
 |--------|------|
+| group | グループ |
 | controller_mappings | コントローラ設定全体 |
 | actions | アクション定義 |
 | action_layers | アクションレイヤー |
