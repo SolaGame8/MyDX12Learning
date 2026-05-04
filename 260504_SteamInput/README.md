@@ -24,12 +24,12 @@
 {
     "InGame"    // プレイ中の設定
     {
-        "Button"
+        "Button"    //ボタン関連
         {
             "jump"      "Jump"    //"jump" プログラム内部で識別するためのID。   "Jump" 表示用（ラベル）
             "fire"      "Shoot"
         }
-        "StickPadGyro"
+        "StickPadGyro"    //ジョイスティック、トラックパッド、ジャイロ 関連
         {
             "move"      "Move"
         }
