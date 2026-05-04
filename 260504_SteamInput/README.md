@@ -1,7 +1,7 @@
 ＊AIに聞いたものなので、嘘が含まれる可能性があります 
 ＊このファイルは、作成中です
 
-## Team Input VDFの書き方
+# Steam Input VDFの書き方
 
 ## Action Sets の定義
 ゲーム内の「状態」を定義
